@@ -115,6 +115,7 @@ export default function FamilyTree() {
         children={selectedPerson ? getChildren(selectedPerson.id) : []}
         spouses={selectedPerson ? getSpouses(selectedPerson.id) : []}
         isAuthenticated={!!user}
+        canEdit={canEdit}
       />
     </div>
   );
