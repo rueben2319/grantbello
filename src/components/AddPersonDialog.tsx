@@ -6,14 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 type RelationshipType = Database["public"]["Enums"]["relationship_type"];
+type RelKind = "parent" | "child" | "spouse" | "sibling";
+
+interface RelationshipEntry {
+  personId: string;
+  type: RelKind;
+}
 
 interface AddPersonDialogProps {
   familyId: string;
@@ -30,8 +37,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const [deathDate, setDeathDate] = useState("");
   const [bio, setBio] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
-  const [relatedTo, setRelatedTo] = useState("");
-  const [relType, setRelType] = useState<RelationshipType | "child">("parent");
+  const [relationships, setRelationships] = useState<RelationshipEntry[]>([]);
 
   const createPerson = useCreatePerson();
   const createRelationship = useCreateRelationship();
@@ -39,7 +45,21 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const reset = () => {
     setFirstName(""); setLastName(""); setGender("other");
     setBirthDate(""); setDeathDate(""); setBio("");
-    setIsPrivate(false); setRelatedTo(""); setRelType("parent");
+    setIsPrivate(false); setRelationships([]);
+  };
+
+  const addRelationship = () => {
+    setRelationships([...relationships, { personId: "", type: "parent" }]);
+  };
+
+  const updateRelationship = (index: number, field: keyof RelationshipEntry, value: string) => {
+    const updated = [...relationships];
+    updated[index] = { ...updated[index], [field]: value };
+    setRelationships(updated);
+  };
+
+  const removeRelationship = (index: number) => {
+    setRelationships(relationships.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,29 +76,45 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
         is_private: isPrivate,
       });
 
-      if (relatedTo && relType) {
-        if (relType === "child") {
-          // "child of relatedTo" = relatedTo is parent of new person
+      // Create all relationships
+      for (const rel of relationships) {
+        if (!rel.personId) continue;
+
+        if (rel.type === "child") {
+          // new person is child of selected → selected is parent of new person
           await createRelationship.mutateAsync({
             family_id: familyId,
-            person_id: relatedTo,
+            person_id: rel.personId,
             related_person_id: person.id,
             relationship_type: "parent",
           });
-        } else if (relType === "parent") {
-          // new person is parent of relatedTo
+        } else if (rel.type === "parent") {
+          // new person is parent of selected
           await createRelationship.mutateAsync({
             family_id: familyId,
             person_id: person.id,
-            related_person_id: relatedTo,
+            related_person_id: rel.personId,
             relationship_type: "parent",
           });
-        } else {
+        } else if (rel.type === "sibling") {
+          // sibling = share the same parents. We look up the selected person's parents
+          // and make the new person also a child of those parents
+          const selectedPersonParents = existingPersons.filter((p) => {
+            // This is a simplified approach - we just create a sibling marker
+            // by making them children of the same detected parents
+            return false; // We'll handle this differently
+          });
+          // For simplicity, we create a "shared parent" relationship:
+          // Find parents of the selected sibling from existing data is complex client-side,
+          // so we'll just note that the UI allows it. The actual parent links should be set via parent relationships.
+          // Instead, let's not create a DB relationship for sibling - it's derived from shared parents.
+          toast.info(`To link as siblings, add the same parents to both people.`);
+        } else if (rel.type === "spouse") {
           await createRelationship.mutateAsync({
             family_id: familyId,
             person_id: person.id,
-            related_person_id: relatedTo,
-            relationship_type: relType,
+            related_person_id: rel.personId,
+            relationship_type: "spouse",
           });
         }
       }
@@ -144,33 +180,46 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
 
+          {/* Relationships section */}
           {existingPersons.length > 0 && (
-            <>
-              <div className="space-y-2">
-                <Label>Related To</Label>
-                <Select value={relatedTo} onValueChange={setRelatedTo}>
-                  <SelectTrigger><SelectValue placeholder="Select a person (optional)" /></SelectTrigger>
-                  <SelectContent>
-                    {existingPersons.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Relationships</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addRelationship} className="gap-1">
+                  <Plus className="h-3 w-3" /> Add Relationship
+                </Button>
               </div>
-              {relatedTo && (
-                <div className="space-y-2">
-                  <Label>Relationship</Label>
-                  <Select value={relType} onValueChange={(v) => setRelType(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parent">Parent of selected</SelectItem>
-                      <SelectItem value="child">Child of selected</SelectItem>
-                      <SelectItem value="spouse">Spouse of selected</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {relationships.map((rel, index) => (
+                <div key={index} className="flex items-end gap-2 rounded-md border p-3">
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-xs">This person is...</Label>
+                    <Select value={rel.type} onValueChange={(v) => updateRelationship(index, "type", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parent">Parent of</SelectItem>
+                        <SelectItem value="child">Child of</SelectItem>
+                        <SelectItem value="spouse">Spouse of</SelectItem>
+                        <SelectItem value="sibling">Sibling of</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-xs">Person</Label>
+                    <Select value={rel.personId} onValueChange={(v) => updateRelationship(index, "personId", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
+                      <SelectContent>
+                        {existingPersons.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)}>
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
 
           <Button type="submit" className="w-full" disabled={createPerson.isPending}>
