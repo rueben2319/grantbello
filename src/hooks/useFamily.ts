@@ -208,3 +208,17 @@ export function useDeletePerson() {
     },
   });
 }
+
+export function useDeleteRelationship() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, familyId }: { id: string; familyId: string }) => {
+      const { error } = await supabase.from("relationships").delete().eq("id", id);
+      if (error) throw error;
+      return familyId;
+    },
+    onSuccess: (familyId) => {
+      queryClient.invalidateQueries({ queryKey: ["family-relationships", familyId] });
+    },
+  });
+}

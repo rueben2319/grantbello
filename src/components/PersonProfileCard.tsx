@@ -17,9 +17,12 @@ interface PersonProfileCardProps {
   spouses: Tables<"persons">[];
   isAuthenticated: boolean;
   canEdit?: boolean;
+  existingPersons?: Tables<"persons">[];
+  relationships?: Tables<"relationships">[];
+  familyId?: string;
 }
 
-export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit }: PersonProfileCardProps) {
+export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, existingPersons = [], relationships = [], familyId = "" }: PersonProfileCardProps) {
   const [editOpen, setEditOpen] = useState(false);
 
   if (!person) return null;
@@ -109,7 +112,14 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
       </Dialog>
 
       {canEdit && (
-        <EditPersonDialog person={person} open={editOpen} onClose={() => setEditOpen(false)} />
+        <EditPersonDialog
+          person={person}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          existingPersons={existingPersons}
+          relationships={relationships}
+          familyId={familyId}
+        />
       )}
     </>
   );
