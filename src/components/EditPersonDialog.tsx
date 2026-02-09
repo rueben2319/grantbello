@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUpdatePerson } from "@/hooks/useFamily";
+import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
@@ -17,9 +18,17 @@ interface EditPersonDialogProps {
   person: Tables<"persons">;
   open: boolean;
   onClose: () => void;
+  existingPersons: Tables<"persons">[];
+  relationships: Tables<"relationships">[];
+  familyId: string;
 }
 
-export function EditPersonDialog({ person, open, onClose }: EditPersonDialogProps) {
+interface NewRelEntry {
+  personId: string;
+  type: "parent" | "child" | "spouse";
+}
+
+export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
   const [firstName, setFirstName] = useState(person.first_name);
   const [lastName, setLastName] = useState(person.last_name || "");
   const [gender, setGender] = useState<GenderType>(person.gender || "other");
@@ -27,8 +36,11 @@ export function EditPersonDialog({ person, open, onClose }: EditPersonDialogProp
   const [deathDate, setDeathDate] = useState(person.death_date || "");
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
+  const [newRels, setNewRels] = useState<NewRelEntry[]>([]);
 
   const updatePerson = useUpdatePerson();
+  const createRelationship = useCreateRelationship();
+  const deleteRelationship = useDeleteRelationship();
 
   useEffect(() => {
     setFirstName(person.first_name);
@@ -38,7 +50,38 @@ export function EditPersonDialog({ person, open, onClose }: EditPersonDialogProp
     setDeathDate(person.death_date || "");
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
+    setNewRels([]);
   }, [person]);
+
+  // Derive existing relationships for this person
+  const existingRels = relationships
+    .filter((r) => r.person_id === person.id || r.related_person_id === person.id)
+    .map((r) => {
+      if (r.relationship_type === "parent" && r.person_id === person.id) {
+        return { rel: r, label: "Parent of", otherPersonId: r.related_person_id };
+      } else if (r.relationship_type === "parent" && r.related_person_id === person.id) {
+        return { rel: r, label: "Child of", otherPersonId: r.person_id };
+      } else if (r.relationship_type === "spouse") {
+        const otherId = r.person_id === person.id ? r.related_person_id : r.person_id;
+        return { rel: r, label: "Spouse of", otherPersonId: otherId };
+      }
+      return null;
+    })
+    .filter(Boolean) as { rel: Tables<"relationships">; label: string; otherPersonId: string }[];
+
+  const getPersonName = (id: string) => {
+    const p = existingPersons.find((ep) => ep.id === id);
+    return p ? `${p.first_name} ${p.last_name || ""}`.trim() : "Unknown";
+  };
+
+  const handleRemoveRelationship = async (relId: string) => {
+    try {
+      await deleteRelationship.mutateAsync({ id: relId, familyId });
+      toast.success("Relationship removed");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +96,42 @@ export function EditPersonDialog({ person, open, onClose }: EditPersonDialogProp
         bio,
         is_private: isPrivate,
       });
+
+      // Create new relationships
+      for (const rel of newRels) {
+        if (!rel.personId) continue;
+        if (rel.type === "child") {
+          await createRelationship.mutateAsync({
+            family_id: familyId,
+            person_id: rel.personId,
+            related_person_id: person.id,
+            relationship_type: "parent",
+          });
+        } else if (rel.type === "parent") {
+          await createRelationship.mutateAsync({
+            family_id: familyId,
+            person_id: person.id,
+            related_person_id: rel.personId,
+            relationship_type: "parent",
+          });
+        } else {
+          await createRelationship.mutateAsync({
+            family_id: familyId,
+            person_id: person.id,
+            related_person_id: rel.personId,
+            relationship_type: "spouse",
+          });
+        }
+      }
+
       toast.success("Person updated!");
       onClose();
     } catch (err: any) {
       toast.error(err.message);
     }
   };
+
+  const otherPersons = existingPersons.filter((p) => p.id !== person.id);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -106,6 +179,63 @@ export function EditPersonDialog({ person, open, onClose }: EditPersonDialogProp
             <Label>Private (hidden from public view)</Label>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
+
+          {/* Existing relationships */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Relationships</Label>
+            {existingRels.map(({ rel, label, otherPersonId }) => (
+              <div key={rel.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                <span>{label} <strong>{getPersonName(otherPersonId)}</strong></span>
+                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+
+            {/* New relationships */}
+            {newRels.map((rel, index) => (
+              <div key={index} className="flex items-end gap-2 rounded-md border p-3">
+                <div className="flex-1 space-y-2">
+                  <Label className="text-xs">This person is...</Label>
+                  <Select value={rel.type} onValueChange={(v) => {
+                    const updated = [...newRels];
+                    updated[index] = { ...updated[index], type: v as any };
+                    setNewRels(updated);
+                  }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parent">Parent of</SelectItem>
+                      <SelectItem value="child">Child of</SelectItem>
+                      <SelectItem value="spouse">Spouse of</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Label className="text-xs">Person</Label>
+                  <Select value={rel.personId} onValueChange={(v) => {
+                    const updated = [...newRels];
+                    updated[index] = { ...updated[index], personId: v };
+                    setNewRels(updated);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
+                    <SelectContent>
+                      {otherPersons.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="button" variant="ghost" size="icon" onClick={() => setNewRels(newRels.filter((_, i) => i !== index))}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            <Button type="button" variant="outline" size="sm" onClick={() => setNewRels([...newRels, { personId: "", type: "parent" }])} className="gap-1">
+              <Plus className="h-3 w-3" /> Add Relationship
+            </Button>
+          </div>
+
           <Button type="submit" className="w-full" disabled={updatePerson.isPending}>
             {updatePerson.isPending ? "Saving..." : "Save Changes"}
           </Button>
