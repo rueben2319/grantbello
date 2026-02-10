@@ -301,28 +301,71 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         .style("cursor", "pointer")
         .on("click", () => onPersonClick(pp.person));
 
-      nodeG.append("circle")
-        .attr("r", NODE_R)
-        .attr("fill", () => {
-          if (pp.person.gender === "male") return "hsl(var(--tree-node-male))";
-          if (pp.person.gender === "female") return "hsl(var(--tree-node-female))";
-          return "hsl(var(--tree-node-other))";
-        })
-        .attr("stroke", "hsl(var(--background))")
-        .attr("stroke-width", 3);
+      const hasPhoto = !!pp.person.photo_url;
+
+      if (hasPhoto) {
+        // Clip path for circular photo
+        const clipId = `clip-${pp.person.id.replace(/-/g, "")}`;
+        const defs = nodeG.append("defs");
+        defs.append("clipPath")
+          .attr("id", clipId)
+          .append("circle")
+          .attr("r", NODE_R)
+          .attr("cx", 0)
+          .attr("cy", 0);
+
+        // Background circle (shows while image loads / as border)
+        nodeG.append("circle")
+          .attr("r", NODE_R)
+          .attr("fill", () => {
+            if (pp.person.gender === "male") return "hsl(var(--tree-node-male))";
+            if (pp.person.gender === "female") return "hsl(var(--tree-node-female))";
+            return "hsl(var(--tree-node-other))";
+          })
+          .attr("stroke", "hsl(var(--background))")
+          .attr("stroke-width", 3);
+
+        // Photo image
+        nodeG.append("image")
+          .attr("href", pp.person.photo_url!)
+          .attr("x", -NODE_R)
+          .attr("y", -NODE_R)
+          .attr("width", NODE_R * 2)
+          .attr("height", NODE_R * 2)
+          .attr("clip-path", `url(#${clipId})`)
+          .attr("preserveAspectRatio", "xMidYMid slice");
+
+        // Border ring on top
+        nodeG.append("circle")
+          .attr("r", NODE_R)
+          .attr("fill", "none")
+          .attr("stroke", "hsl(var(--background))")
+          .attr("stroke-width", 3);
+      } else {
+        nodeG.append("circle")
+          .attr("r", NODE_R)
+          .attr("fill", () => {
+            if (pp.person.gender === "male") return "hsl(var(--tree-node-male))";
+            if (pp.person.gender === "female") return "hsl(var(--tree-node-female))";
+            return "hsl(var(--tree-node-other))";
+          })
+          .attr("stroke", "hsl(var(--background))")
+          .attr("stroke-width", 3);
+
+        const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
+        const initials = name.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("").toUpperCase();
+
+        nodeG.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", "white")
+          .attr("font-size", "14px")
+          .attr("font-weight", "bold")
+          .attr("font-family", "Space Grotesk, sans-serif")
+          .text(initials);
+      }
 
       const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
-      const initials = name.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("").toUpperCase();
-
-      nodeG.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dy", "0.35em")
-        .attr("fill", "white")
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .attr("font-family", "Space Grotesk, sans-serif")
-        .text(initials);
-
       nodeG.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "48px")
