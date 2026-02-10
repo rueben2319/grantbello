@@ -41,6 +41,8 @@ export default function FamilyTree() {
     setSearchOpen(false);
     setSearchQuery("");
     treeRef.current?.focusPerson(person.id);
+    // Show profile card after zoom animation completes
+    setTimeout(() => setSelectedPerson(person), 650);
   };
 
   const canEdit = userRole === "admin" || userRole === "editor";
