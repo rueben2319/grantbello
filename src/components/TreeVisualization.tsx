@@ -6,6 +6,7 @@ interface CoupleNode {
   type: "couple";
   id: string;
   persons: Tables<"persons">[];
+  primaryIndex: number; // which person in the couple is the blood-relative (0 or 1)
   children: LayoutNode[];
 }
 
@@ -82,6 +83,11 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         visited.add(coupleSpouseId);
         const spouse = personMap.get(coupleSpouseId)!;
 
+        // Determine who is the "primary" (blood-relative in the lineage).
+        // The person who was passed into buildNode is the one discovered via
+        // a parent→child link, so they are the blood relative (index 0).
+        const primaryIndex = 0;
+
         // Shared children come from between the couple
         const sharedChildIds = getSharedChildren(personId, coupleSpouseId);
         // Exclusive children of each
@@ -95,6 +101,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
           type: "couple",
           id: `${personId}_${coupleSpouseId}`,
           persons: [person, spouse],
+          primaryIndex,
           children,
         };
       } else {
@@ -208,7 +215,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         posPersons.push({ x: p2x, y, person: p2 });
         posCoupleLines.push({ x1: p1x + NODE_R, y1: y, x2: p2x - NODE_R, y2: y });
 
-        // Links from midpoint to children
+        // Links from couple midpoint to children
         const midX = centerX;
         node.children.forEach((child, i) => {
           const childAnchorX = childLayouts[i]?.anchorX ?? (childXStarts[i] + (childLayouts[i]?.width ?? 0) / 2);
@@ -220,7 +227,9 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
           });
         });
 
-        return { width: totalWidth, anchorX: centerX };
+        // anchorX points to the primary (blood-relative) person so parent links target them
+        const primaryX = node.primaryIndex === 0 ? p1x : p2x;
+        return { width: totalWidth, anchorX: primaryX };
       } else {
         // Single node
         const person = node.person;
