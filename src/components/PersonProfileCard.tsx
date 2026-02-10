@@ -37,7 +37,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="font-display text-xl">
