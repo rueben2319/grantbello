@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo, useCallback, useImperativeHandle, forwardRef } from "react";
 import * as d3 from "d3";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -19,15 +19,21 @@ interface SingleNode {
 
 type LayoutNode = CoupleNode | SingleNode;
 
+export interface TreeVisualizationHandle {
+  focusPerson: (personId: string) => void;
+}
+
 interface TreeVisualizationProps {
   persons: Tables<"persons">[];
   relationships: Tables<"relationships">[];
   onPersonClick: (person: Tables<"persons">) => void;
 }
 
-export function TreeVisualization({ persons, relationships, onPersonClick }: TreeVisualizationProps) {
+export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisualizationProps>(function TreeVisualization({ persons, relationships, onPersonClick }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const personPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
 
   const layoutData = useMemo(() => {
     if (!persons.length) return null;
@@ -475,7 +481,38 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       }
     });
 
+    // Store person positions for external focus
+    personPositionsRef.current = new Map(posPersons.map((pp) => [pp.person.id, { x: pp.x, y: pp.y }]));
+
+    // Store zoom ref for external use
+    zoomRef.current = zoom;
+
   }, [layoutData, onPersonClick]);
+
+  useImperativeHandle(ref, () => ({
+    focusPerson: (personId: string) => {
+      const pos = personPositionsRef.current.get(personId);
+      if (!pos || !svgRef.current || !containerRef.current || !zoomRef.current) return;
+      const svg = d3.select(svgRef.current);
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      const scale = 1.5;
+      const transform = d3.zoomIdentity
+        .translate(width / 2 - pos.x * scale, height / 2 - pos.y * scale)
+        .scale(scale);
+      svg.transition().duration(600).call(zoomRef.current.transform, transform);
+
+      // Flash highlight
+      const g = svg.select("g");
+      const ring = g.append("circle")
+        .attr("cx", pos.x).attr("cy", pos.y).attr("r", 38)
+        .attr("fill", "none")
+        .attr("stroke", "hsl(var(--primary))")
+        .attr("stroke-width", 4)
+        .attr("opacity", 1);
+      ring.transition().duration(1500).attr("r", 50).attr("opacity", 0).remove();
+    },
+  }), []);
 
   useEffect(() => {
     renderTree();
@@ -517,4 +554,4 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       </details>
     </div>
   );
-}
+});
