@@ -166,6 +166,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       x: number;
       y: number;
       person: Tables<"persons">;
+      marriedIn?: boolean; // true if this person married into the family
     }
 
     interface PositionedLink {
@@ -211,8 +212,8 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         const p1x = centerX - COUPLE_GAP / 2;
         const p2x = centerX + COUPLE_GAP / 2;
 
-        posPersons.push({ x: p1x, y, person: p1 });
-        posPersons.push({ x: p2x, y, person: p2 });
+        posPersons.push({ x: p1x, y, person: p1, marriedIn: node.primaryIndex !== 0 });
+        posPersons.push({ x: p2x, y, person: p2, marriedIn: node.primaryIndex !== 1 });
         posCoupleLines.push({ x1: p1x + NODE_R, y1: y, x2: p2x - NODE_R, y2: y });
 
         // Links from couple midpoint to children
@@ -331,8 +332,9 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
             if (pp.person.gender === "female") return "hsl(var(--tree-node-female))";
             return "hsl(var(--tree-node-other))";
           })
-          .attr("stroke", "hsl(var(--background))")
-          .attr("stroke-width", 3);
+          .attr("stroke", pp.marriedIn ? "hsl(var(--primary))" : "hsl(var(--background))")
+          .attr("stroke-width", 3)
+          .attr("stroke-dasharray", pp.marriedIn ? "5,3" : "none");
 
         // Photo image
         nodeG.append("image")
@@ -348,8 +350,9 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         nodeG.append("circle")
           .attr("r", NODE_R)
           .attr("fill", "none")
-          .attr("stroke", "hsl(var(--background))")
-          .attr("stroke-width", 3);
+          .attr("stroke", pp.marriedIn ? "hsl(var(--primary))" : "hsl(var(--background))")
+          .attr("stroke-width", 3)
+          .attr("stroke-dasharray", pp.marriedIn ? "5,3" : "none");
       } else {
         nodeG.append("circle")
           .attr("r", NODE_R)
@@ -358,8 +361,9 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
             if (pp.person.gender === "female") return "hsl(var(--tree-node-female))";
             return "hsl(var(--tree-node-other))";
           })
-          .attr("stroke", "hsl(var(--background))")
-          .attr("stroke-width", 3);
+          .attr("stroke", pp.marriedIn ? "hsl(var(--primary))" : "hsl(var(--background))")
+          .attr("stroke-width", 3)
+          .attr("stroke-dasharray", pp.marriedIn ? "5,3" : "none");
 
         const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
         const initials = name.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("").toUpperCase();
