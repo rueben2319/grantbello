@@ -24,9 +24,10 @@ interface PersonProfileCardProps {
   existingPersons?: Tables<"persons">[];
   relationships?: Tables<"relationships">[];
   familyId?: string;
+  onNavigateToPerson?: (person: Tables<"persons">) => void;
 }
 
-export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, isAdmin, existingPersons = [], relationships = [], familyId = "" }: PersonProfileCardProps) {
+export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, isAdmin, existingPersons = [], relationships = [], familyId = "", onNavigateToPerson }: PersonProfileCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const deletePerson = useDeletePerson();
 
@@ -125,7 +126,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
                   <h4 className="font-display font-semibold text-sm">Parents</h4>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {parents.map((p) => (
-                      <Badge key={p.id} variant="secondary">{p.first_name} {p.last_name}</Badge>
+                      <Badge key={p.id} variant="secondary" className={onNavigateToPerson ? "cursor-pointer hover:bg-primary/20 transition-colors" : ""} onClick={() => onNavigateToPerson?.(p)}>{p.first_name} {p.last_name}</Badge>
                     ))}
                   </div>
                 </div>
@@ -135,7 +136,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
                   <h4 className="font-display font-semibold text-sm">Spouse(s)</h4>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {spouses.map((s) => (
-                      <Badge key={s.id} variant="secondary">{s.first_name} {s.last_name}</Badge>
+                      <Badge key={s.id} variant="secondary" className={onNavigateToPerson ? "cursor-pointer hover:bg-primary/20 transition-colors" : ""} onClick={() => onNavigateToPerson?.(s)}>{s.first_name} {s.last_name}</Badge>
                     ))}
                   </div>
                 </div>
@@ -145,7 +146,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
                   <h4 className="font-display font-semibold text-sm">Children</h4>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {kids.map((c) => (
-                      <Badge key={c.id} variant="secondary">{c.first_name} {c.last_name}</Badge>
+                      <Badge key={c.id} variant="secondary" className={onNavigateToPerson ? "cursor-pointer hover:bg-primary/20 transition-colors" : ""} onClick={() => onNavigateToPerson?.(c)}>{c.first_name} {c.last_name}</Badge>
                     ))}
                   </div>
                 </div>

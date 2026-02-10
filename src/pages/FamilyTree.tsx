@@ -187,6 +187,11 @@ export default function FamilyTree() {
         existingPersons={persons}
         relationships={relationships}
         familyId={familyId || ""}
+        onNavigateToPerson={(p) => {
+          setSelectedPerson(null);
+          treeRef.current?.focusPerson(p.id);
+          setTimeout(() => setSelectedPerson(p), 650);
+        }}
       />
     </div>
   );
