@@ -91,6 +91,7 @@ export type Database = {
           id: string
           is_private: boolean
           last_name: string | null
+          married_in: boolean
           photo_url: string | null
           updated_at: string
         }
@@ -105,6 +106,7 @@ export type Database = {
           id?: string
           is_private?: boolean
           last_name?: string | null
+          married_in?: boolean
           photo_url?: string | null
           updated_at?: string
         }
@@ -119,6 +121,7 @@ export type Database = {
           id?: string
           is_private?: boolean
           last_name?: string | null
+          married_in?: boolean
           photo_url?: string | null
           updated_at?: string
         }

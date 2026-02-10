@@ -182,7 +182,8 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       x: number;
       y: number;
       person: Tables<"persons">;
-      marriedIn?: boolean; // true if this person married into the family
+      marriedIn?: boolean;
+      deceased?: boolean;
     }
 
     interface PositionedLink {
@@ -228,8 +229,8 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         const p1x = centerX - COUPLE_GAP / 2;
         const p2x = centerX + COUPLE_GAP / 2;
 
-        posPersons.push({ x: p1x, y, person: p1, marriedIn: node.primaryIndex !== 0 });
-        posPersons.push({ x: p2x, y, person: p2, marriedIn: node.primaryIndex !== 1 });
+        posPersons.push({ x: p1x, y, person: p1, marriedIn: !!(p1 as any).married_in, deceased: !!p1.death_date });
+        posPersons.push({ x: p2x, y, person: p2, marriedIn: !!(p2 as any).married_in, deceased: !!p2.death_date });
         posCoupleLines.push({ x1: p1x + NODE_R, y1: y, x2: p2x - NODE_R, y2: y });
 
         // Links from couple midpoint to children
@@ -269,7 +270,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         const totalWidth = Math.max(NODE_R * 2, childrenWidth);
         const centerX = x + totalWidth / 2;
 
-        posPersons.push({ x: centerX, y, person });
+        posPersons.push({ x: centerX, y, person, deceased: !!person.death_date });
 
         node.children.forEach((child, i) => {
           const childAnchorX = childLayouts[i]?.anchorX ?? (childXStarts[i] + (childLayouts[i]?.width ?? 0) / 2);
@@ -325,6 +326,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       const nodeG = g.append("g")
         .attr("transform", `translate(${pp.x},${pp.y})`)
         .style("cursor", "pointer")
+        .style("opacity", pp.deceased ? 0.6 : 1)
         .on("click", () => onPersonClick(pp.person));
 
       const hasPhoto = !!pp.person.photo_url;
@@ -394,11 +396,23 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
           .text(initials);
       }
 
+      // Deceased indicator - small cross icon
+      if (pp.deceased) {
+        nodeG.append("text")
+          .attr("text-anchor", "middle")
+          .attr("x", NODE_R - 4)
+          .attr("y", -NODE_R + 12)
+          .attr("fill", "hsl(var(--destructive))")
+          .attr("font-size", "14px")
+          .attr("font-weight", "bold")
+          .text("✝");
+      }
+
       const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
       nodeG.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "48px")
-        .attr("fill", "hsl(var(--foreground))")
+        .attr("fill", pp.deceased ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))")
         .attr("font-size", "11px")
         .attr("font-family", "Inter, sans-serif")
         .text(name.length > 18 ? name.slice(0, 16) + "…" : name);
