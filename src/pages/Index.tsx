@@ -13,24 +13,24 @@ export default function Index() {
       <Navbar />
 
       {/* Hero */}
-      <section className="container flex flex-col items-center py-20 text-center lg:py-32">
+      <section className="container flex flex-col items-center px-4 py-12 text-center sm:py-20 lg:py-32">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="flex flex-col items-center"
         >
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary shadow-lg shadow-primary/30">
-            <TreePine className="h-10 w-10 text-primary-foreground" />
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-3xl">
+            <TreePine className="h-8 w-8 text-primary-foreground sm:h-10 sm:w-10" />
           </div>
-          <h1 className="mb-4 max-w-3xl font-display text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mb-4 max-w-3xl font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
             Map Your Heritage with{" "}
             <span className="text-primary">Roots & Branches</span>
           </h1>
           <p className="mb-8 max-w-xl text-lg text-muted-foreground">
             Build interactive family trees, preserve stories, and share your family history — publicly or privately.
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             {user ? (
               <Button size="lg" asChild>
                 <Link to="/dashboard">Go to Dashboard</Link>
@@ -90,8 +90,8 @@ export default function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container flex items-center justify-between text-sm text-muted-foreground">
+      <footer className="border-t py-6 sm:py-8">
+        <div className="container flex flex-col items-center gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2 font-display font-semibold text-foreground">
             <TreePine className="h-4 w-4 text-primary" />
             Roots & Branches

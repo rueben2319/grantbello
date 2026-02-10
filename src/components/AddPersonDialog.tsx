@@ -136,8 +136,9 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <UserPlus className="h-4 w-4" /> Add Person
+        <Button variant="outline" size="sm" className="gap-1 sm:gap-2">
+          <UserPlus className="h-4 w-4" />
+          <span className="hidden sm:inline">Add Person</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">

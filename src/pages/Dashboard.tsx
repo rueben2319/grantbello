@@ -10,11 +10,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold">My Family Trees</h1>
-            <p className="text-muted-foreground">Manage and explore your family histories</p>
+      <main className="container px-4 py-6 sm:py-8">
+        <div className="mb-6 flex items-center justify-between gap-4 sm:mb-8">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">My Family Trees</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">Manage and explore your family histories</p>
           </div>
           <CreateFamilyDialog />
         </div>

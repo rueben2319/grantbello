@@ -76,21 +76,21 @@ export default function FamilyTree() {
     <div className="flex h-screen flex-col bg-background">
       <Navbar />
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
+      <div className="flex items-center justify-between border-b px-2 py-2 sm:px-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link to={user ? "/dashboard" : "/browse"}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
-            <h1 className="font-display text-lg font-bold">{family.name}</h1>
+          <div className="min-w-0">
+            <h1 className="font-display text-base font-bold truncate sm:text-lg">{family.name}</h1>
             <p className="text-xs text-muted-foreground">
               {persons.length} {persons.length === 1 ? "person" : "people"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {canEdit && <AddPersonDialog familyId={family.id} existingPersons={persons} />}
           {isAdmin && <FamilySettingsDialog family={family} />}
           {isAdmin && <MemberManagement familyId={family.id} isAdmin={isAdmin} />}

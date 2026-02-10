@@ -9,10 +9,10 @@ export default function Browse() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-8">
-        <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold">Browse Family Trees</h1>
-          <p className="text-muted-foreground">Explore publicly shared family histories</p>
+      <main className="container px-4 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Browse Family Trees</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">Explore publicly shared family histories</p>
         </div>
 
         {isLoading ? (
