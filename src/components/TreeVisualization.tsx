@@ -184,6 +184,8 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       person: Tables<"persons">;
       marriedIn?: boolean;
       deceased?: boolean;
+      birthOrder?: number; // 1-based order among siblings
+      siblingCount?: number;
     }
 
     interface PositionedLink {
@@ -231,6 +233,19 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
 
         posPersons.push({ x: p1x, y, person: p1, marriedIn: !!(p1 as any).married_in, deceased: !!p1.death_date });
         posPersons.push({ x: p2x, y, person: p2, marriedIn: !!(p2 as any).married_in, deceased: !!p2.death_date });
+
+        // Tag children with birth order
+        const childCount = node.children.length;
+        node.children.forEach((_child, i) => {
+          // Find the person just pushed by this child's layout
+          const childNode = node.children[i];
+          const childPersonId = childNode.type === "couple" ? childNode.persons[childNode.primaryIndex].id : childNode.person.id;
+          const pp = posPersons.find((p) => p.person.id === childPersonId);
+          if (pp && childCount > 1) {
+            pp.birthOrder = i + 1;
+            pp.siblingCount = childCount;
+          }
+        });
         posCoupleLines.push({ x1: p1x + NODE_R, y1: y, x2: p2x - NODE_R, y2: y });
 
         // Links from couple midpoint to children
@@ -271,6 +286,18 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         const centerX = x + totalWidth / 2;
 
         posPersons.push({ x: centerX, y, person, deceased: !!person.death_date });
+
+        // Tag children with birth order
+        const childCount = node.children.length;
+        node.children.forEach((_child, i) => {
+          const childNode = node.children[i];
+          const childPersonId = childNode.type === "couple" ? childNode.persons[childNode.primaryIndex].id : childNode.person.id;
+          const pp = posPersons.find((p) => p.person.id === childPersonId);
+          if (pp && childCount > 1) {
+            pp.birthOrder = i + 1;
+            pp.siblingCount = childCount;
+          }
+        });
 
         node.children.forEach((child, i) => {
           const childAnchorX = childLayouts[i]?.anchorX ?? (childXStarts[i] + (childLayouts[i]?.width ?? 0) / 2);
@@ -416,6 +443,18 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         .attr("font-size", "11px")
         .attr("font-family", "Inter, sans-serif")
         .text(name.length > 18 ? name.slice(0, 16) + "…" : name);
+
+      // Birth order label
+      if (pp.birthOrder) {
+        const ordinal = pp.birthOrder === 1 ? "1st" : pp.birthOrder === 2 ? "2nd" : pp.birthOrder === 3 ? "3rd" : `${pp.birthOrder}th`;
+        nodeG.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "62px")
+          .attr("fill", "hsl(var(--muted-foreground))")
+          .attr("font-size", "9px")
+          .attr("font-family", "Inter, sans-serif")
+          .text(ordinal + " born");
+      }
     });
 
   }, [layoutData, onPersonClick]);
