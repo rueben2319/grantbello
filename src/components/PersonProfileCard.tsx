@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditPersonDialog } from "@/components/EditPersonDialog";
-import { Pencil } from "lucide-react";
+import { useDeletePerson } from "@/hooks/useFamily";
+import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface PersonProfileCardProps {
@@ -17,13 +20,15 @@ interface PersonProfileCardProps {
   spouses: Tables<"persons">[];
   isAuthenticated: boolean;
   canEdit?: boolean;
+  isAdmin?: boolean;
   existingPersons?: Tables<"persons">[];
   relationships?: Tables<"relationships">[];
   familyId?: string;
 }
 
-export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, existingPersons = [], relationships = [], familyId = "" }: PersonProfileCardProps) {
+export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, isAdmin, existingPersons = [], relationships = [], familyId = "" }: PersonProfileCardProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const deletePerson = useDeletePerson();
 
   if (!person) return null;
 
@@ -39,9 +44,48 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
                 {person.first_name} {person.last_name}
               </DialogTitle>
               {canEdit && (
-                <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  {isAdmin && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {person.first_name} {person.last_name}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove this person and all their relationships from the family tree. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                              deletePerson.mutate(
+                                { id: person.id, familyId },
+                                {
+                                  onSuccess: () => {
+                                    toast.success(`${person.first_name} has been removed`);
+                                    onClose();
+                                  },
+                                  onError: (err) => toast.error(err.message),
+                                }
+                              );
+                            }}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               )}
             </div>
           </DialogHeader>
