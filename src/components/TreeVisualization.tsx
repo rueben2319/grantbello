@@ -475,8 +475,26 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
   }
 
   return (
-    <div ref={containerRef} className="h-full w-full overflow-hidden">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
       <svg ref={svgRef} className="h-full w-full" />
+      {/* Legend */}
+      <div className="absolute bottom-4 left-4 rounded-lg border bg-background/90 px-4 py-3 text-xs shadow-md backdrop-blur-sm">
+        <p className="mb-2 font-semibold text-foreground">Legend</p>
+        <div className="flex flex-col gap-1.5 text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-4 w-6 rounded-full border-2 border-dashed border-primary" />
+            <span>Married into family</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-destructive font-bold">✝</span>
+            <span>Deceased</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground italic">1st born</span>
+            <span>Birth order among siblings</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
