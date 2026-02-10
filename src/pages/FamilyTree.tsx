@@ -116,6 +116,7 @@ export default function FamilyTree() {
         spouses={selectedPerson ? getSpouses(selectedPerson.id) : []}
         isAuthenticated={!!user}
         canEdit={canEdit}
+        isAdmin={isAdmin}
         existingPersons={persons}
         relationships={relationships}
         familyId={familyId || ""}
