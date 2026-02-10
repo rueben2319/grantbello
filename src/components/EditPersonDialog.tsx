@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
@@ -38,6 +39,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
   const [photoUrl, setPhotoUrl] = useState<string | null>(person.photo_url || null);
+  const [marriedIn, setMarriedIn] = useState((person as any).married_in || false);
   const [newRels, setNewRels] = useState<NewRelEntry[]>([]);
 
   const updatePerson = useUpdatePerson();
@@ -53,6 +55,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
     setPhotoUrl(person.photo_url || null);
+    setMarriedIn((person as any).married_in || false);
     setNewRels([]);
   }, [person]);
 
@@ -99,6 +102,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
+        married_in: marriedIn,
       });
 
       // Create new relationships
@@ -189,6 +193,20 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
             <Label>Private (hidden from public view)</Label>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
+
+          {/* Married into family checkbox */}
+          {existingRels.some((r) => r.label === "Spouse of") && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="marriedInEdit"
+                checked={marriedIn}
+                onCheckedChange={(checked) => setMarriedIn(checked === true)}
+              />
+              <Label htmlFor="marriedInEdit" className="text-sm">
+                This person married into the family
+              </Label>
+            </div>
+          )}
 
           {/* Existing relationships */}
           <div className="space-y-3">
