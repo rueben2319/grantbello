@@ -95,6 +95,14 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
         const p2Kids = [...(parentToChildren.get(coupleSpouseId) || [])].filter((k) => !sharedChildIds.includes(k));
 
         const allChildIds = [...new Set([...sharedChildIds, ...p1Kids, ...p2Kids])];
+        // Sort children by birth_date (earliest first), nulls last
+        allChildIds.sort((a, b) => {
+          const pa = personMap.get(a);
+          const pb = personMap.get(b);
+          const da = pa?.birth_date ? new Date(pa.birth_date).getTime() : Infinity;
+          const db = pb?.birth_date ? new Date(pb.birth_date).getTime() : Infinity;
+          return da - db;
+        });
         const children = allChildIds.map((cid) => buildNode(cid)).filter(Boolean) as LayoutNode[];
 
         return {
@@ -107,6 +115,14 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
       } else {
         visited.add(personId);
         const kidIds = [...(parentToChildren.get(personId) || [])];
+        // Sort children by birth_date (earliest first), nulls last
+        kidIds.sort((a, b) => {
+          const pa = personMap.get(a);
+          const pb = personMap.get(b);
+          const da = pa?.birth_date ? new Date(pa.birth_date).getTime() : Infinity;
+          const db = pb?.birth_date ? new Date(pb.birth_date).getTime() : Infinity;
+          return da - db;
+        });
         const children = kidIds.map((cid) => buildNode(cid)).filter(Boolean) as LayoutNode[];
 
         return {
