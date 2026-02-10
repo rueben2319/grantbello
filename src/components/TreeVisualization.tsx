@@ -151,7 +151,7 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
 
     // Layout constants
     const NODE_R = 28;
-    const COUPLE_GAP = 70; // distance between couple nodes center-to-center
+    const COUPLE_GAP = 130; // distance between couple nodes center-to-center
     const H_SPACING = 140;
     const V_SPACING = 140;
 

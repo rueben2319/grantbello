@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PhotoUpload } from "@/components/PhotoUpload";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const [deathDate, setDeathDate] = useState("");
   const [bio, setBio] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [relationships, setRelationships] = useState<RelationshipEntry[]>([]);
 
   const createPerson = useCreatePerson();
@@ -45,7 +47,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const reset = () => {
     setFirstName(""); setLastName(""); setGender("other");
     setBirthDate(""); setDeathDate(""); setBio("");
-    setIsPrivate(false); setRelationships([]);
+    setIsPrivate(false); setPhotoUrl(null); setRelationships([]);
   };
 
   const addRelationship = () => {
@@ -74,6 +76,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
         death_date: deathDate || null,
         bio,
         is_private: isPrivate,
+        photo_url: photoUrl,
       });
 
       // Create all relationships
@@ -175,6 +178,12 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short biography..." />
           </div>
+          <PhotoUpload
+            familyId={familyId}
+            currentUrl={photoUrl}
+            onUploaded={(url) => setPhotoUrl(url)}
+            onRemoved={() => setPhotoUrl(null)}
+          />
           <div className="flex items-center justify-between">
             <Label>Private (hidden from public view)</Label>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />

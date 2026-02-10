@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PhotoUpload } from "@/components/PhotoUpload";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const [deathDate, setDeathDate] = useState(person.death_date || "");
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(person.photo_url || null);
   const [newRels, setNewRels] = useState<NewRelEntry[]>([]);
 
   const updatePerson = useUpdatePerson();
@@ -50,6 +52,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
     setDeathDate(person.death_date || "");
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
+    setPhotoUrl(person.photo_url || null);
     setNewRels([]);
   }, [person]);
 
@@ -95,6 +98,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
         death_date: deathDate || null,
         bio,
         is_private: isPrivate,
+        photo_url: photoUrl,
       });
 
       // Create new relationships
@@ -175,6 +179,12 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short biography..." />
           </div>
+          <PhotoUpload
+            familyId={familyId}
+            currentUrl={photoUrl}
+            onUploaded={(url) => setPhotoUrl(url)}
+            onRemoved={() => setPhotoUrl(null)}
+          />
           <div className="flex items-center justify-between">
             <Label>Private (hidden from public view)</Label>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
