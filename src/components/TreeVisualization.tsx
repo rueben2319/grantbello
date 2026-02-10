@@ -322,11 +322,29 @@ export function TreeVisualization({ persons, relationships, onPersonClick }: Tre
 
     const totalTreeWidth = startX;
 
-    // Center tree
-    const initialTransform = d3.zoomIdentity
-      .translate(Math.max(0, width / 2 - totalTreeWidth / 2), 20)
-      .scale(Math.min(1, width / totalTreeWidth));
-    svg.call(zoom.transform, initialTransform);
+    // Find the bounding box of root-level persons (first generation) to focus on them
+    const rootPersons = posPersons.filter((pp) => pp.y === 60);
+    if (rootPersons.length > 0) {
+      const minX = Math.min(...rootPersons.map((p) => p.x)) - NODE_R * 2;
+      const maxX = Math.max(...rootPersons.map((p) => p.x)) + NODE_R * 2;
+      const rootWidth = maxX - minX;
+      const rootCenterX = (minX + maxX) / 2;
+
+      // Scale to fit root generation nicely, with some breathing room
+      const targetScale = Math.min(1.2, (width * 0.7) / Math.max(rootWidth, 1));
+      const clampedScale = Math.max(0.4, Math.min(targetScale, 1.2));
+
+      const initialTransform = d3.zoomIdentity
+        .translate(width / 2 - rootCenterX * clampedScale, height * 0.15 - 60 * clampedScale)
+        .scale(clampedScale);
+      svg.call(zoom.transform, initialTransform);
+    } else {
+      // Fallback: center entire tree
+      const initialTransform = d3.zoomIdentity
+        .translate(Math.max(0, width / 2 - totalTreeWidth / 2), 20)
+        .scale(Math.min(1, width / totalTreeWidth));
+      svg.call(zoom.transform, initialTransform);
+    }
 
     // Draw couple lines
     posCoupleLines.forEach((cl) => {

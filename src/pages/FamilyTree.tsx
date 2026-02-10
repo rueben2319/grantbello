@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useFamily, useFamilyPersons, useFamilyRelationships, useUserFamilyRole } from "@/hooks/useFamily";
 import { useAuth } from "@/contexts/AuthContext";
 import { TreeVisualization } from "@/components/TreeVisualization";
@@ -9,7 +9,7 @@ import { FamilySettingsDialog } from "@/components/FamilySettingsDialog";
 import { MemberManagement } from "@/components/MemberManagement";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TreePine } from "lucide-react";
+import { TreePine } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 export default function FamilyTree() {
@@ -64,9 +64,6 @@ export default function FamilyTree() {
         <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center">
           <TreePine className="mb-4 h-16 w-16 text-muted-foreground/50" />
           <h2 className="font-display text-xl">Family not found</h2>
-          <Button asChild variant="link" className="mt-2">
-            <Link to="/dashboard">Go to Dashboard</Link>
-          </Button>
         </div>
       </div>
     );
@@ -78,11 +75,6 @@ export default function FamilyTree() {
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b px-2 py-2 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <Button variant="ghost" size="icon" className="shrink-0" asChild>
-            <Link to={user ? "/dashboard" : "/browse"}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
           <div className="min-w-0">
             <h1 className="font-display text-base font-bold truncate sm:text-lg">{family.name}</h1>
             <p className="text-xs text-muted-foreground">
