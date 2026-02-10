@@ -40,6 +40,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const [isPrivate, setIsPrivate] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [relationships, setRelationships] = useState<RelationshipEntry[]>([]);
+  const [marriedIn, setMarriedIn] = useState(false);
 
   const createPerson = useCreatePerson();
   const createRelationship = useCreateRelationship();
@@ -47,7 +48,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const reset = () => {
     setFirstName(""); setLastName(""); setGender("other");
     setBirthDate(""); setDeathDate(""); setBio("");
-    setIsPrivate(false); setPhotoUrl(null); setRelationships([]);
+    setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
   };
 
   const addRelationship = () => {
@@ -77,6 +78,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
+        married_in: marriedIn,
       });
 
       // Create all relationships
@@ -188,6 +190,20 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             <Label>Private (hidden from public view)</Label>
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
+
+          {/* Married into family checkbox - show when a spouse relationship exists */}
+          {relationships.some((r) => r.type === "spouse") && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="marriedIn"
+                checked={marriedIn}
+                onCheckedChange={(checked) => setMarriedIn(checked === true)}
+              />
+              <Label htmlFor="marriedIn" className="text-sm">
+                This person is marrying into the family
+              </Label>
+            </div>
+          )}
 
           {/* Relationships section */}
           {existingPersons.length > 0 && (
