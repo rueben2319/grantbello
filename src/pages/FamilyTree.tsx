@@ -7,10 +7,12 @@ import { PersonProfileCard } from "@/components/PersonProfileCard";
 import { AddPersonDialog } from "@/components/AddPersonDialog";
 import { FamilySettingsDialog } from "@/components/FamilySettingsDialog";
 import { MemberManagement } from "@/components/MemberManagement";
+import { BranchList, type Branch } from "@/components/BranchList";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TreePine, Search, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { TreePine, Search, X, GitBranch } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -27,6 +29,77 @@ export default function FamilyTree() {
   const [selectedPerson, setSelectedPerson] = useState<Tables<"persons"> | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [branchesOpen, setBranchesOpen] = useState(false);
+
+  // Compute branches
+  const branches = useMemo<Branch[]>(() => {
+    const result: Branch[] = [];
+    const usedPersonIds = new Set<string>();
+
+    // 1. Spouse pairs with children
+    const spouseRels = relationships.filter((r) => r.relationship_type === "spouse");
+    for (const rel of spouseRels) {
+      const p1 = persons.find((p) => p.id === rel.person_id);
+      const p2 = persons.find((p) => p.id === rel.related_person_id);
+      if (!p1 || !p2) continue;
+
+      // Find shared children (both are parents of the same child)
+      const p1Children = new Set(
+        relationships
+          .filter((r) => r.relationship_type === "parent" && r.person_id === p1.id)
+          .map((r) => r.related_person_id)
+      );
+      const sharedChildren = relationships
+        .filter((r) => r.relationship_type === "parent" && r.person_id === p2.id && p1Children.has(r.related_person_id))
+        .map((r) => r.related_person_id);
+
+      const childCount = new Set(sharedChildren).size;
+      if (childCount === 0) continue;
+
+      const primary = p1.married_in ? p2 : p1;
+      const secondary = primary.id === p1.id ? p2 : p1;
+
+      result.push({
+        id: `${primary.id}-${secondary.id}`,
+        persons: [primary, secondary],
+        childCount,
+        primaryPersonId: primary.id,
+      });
+
+      usedPersonIds.add(p1.id);
+      usedPersonIds.add(p2.id);
+    }
+
+    // 2. Single parents (have children but not already in a spouse branch)
+    const parentRels = relationships.filter((r) => r.relationship_type === "parent");
+    const parentChildMap = new Map<string, Set<string>>();
+    for (const r of parentRels) {
+      if (!parentChildMap.has(r.person_id)) parentChildMap.set(r.person_id, new Set());
+      parentChildMap.get(r.person_id)!.add(r.related_person_id);
+    }
+
+    for (const [parentId, children] of parentChildMap) {
+      if (usedPersonIds.has(parentId)) continue;
+      const person = persons.find((p) => p.id === parentId);
+      if (!person) continue;
+
+      result.push({
+        id: parentId,
+        persons: [person, undefined],
+        childCount: children.size,
+        primaryPersonId: parentId,
+      });
+    }
+
+    // Sort by birth date (oldest first), nulls last
+    result.sort((a, b) => {
+      const da = a.persons[0].birth_date || "9999";
+      const db = b.persons[0].birth_date || "9999";
+      return da.localeCompare(db);
+    });
+
+    return result;
+  }, [persons, relationships]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -41,8 +114,12 @@ export default function FamilyTree() {
     setSearchOpen(false);
     setSearchQuery("");
     treeRef.current?.focusPerson(person.id);
-    // Show profile card after zoom animation completes
     setTimeout(() => setSelectedPerson(person), 650);
+  };
+
+  const handleSelectBranch = (branch: Branch) => {
+    if (isMobile) setBranchesOpen(false);
+    treeRef.current?.focusPerson(branch.primaryPersonId);
   };
 
   const canEdit = userRole === "admin" || userRole === "editor";
@@ -70,12 +147,10 @@ export default function FamilyTree() {
   };
 
   const getSiblings = (personId: string) => {
-    // Find this person's parents
     const parentIds = relationships
       .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
       .map((r) => r.person_id);
     if (parentIds.length === 0) return [];
-    // Find all children of those parents, excluding self
     const siblingIds = new Set<string>();
     relationships
       .filter((r) => r.relationship_type === "parent" && parentIds.includes(r.person_id) && r.related_person_id !== personId)
@@ -106,6 +181,14 @@ export default function FamilyTree() {
     );
   }
 
+  const branchListContent = (
+    <BranchList
+      branches={branches}
+      onSelectBranch={handleSelectBranch}
+      onClose={() => setBranchesOpen(false)}
+    />
+  );
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <Navbar />
@@ -120,6 +203,14 @@ export default function FamilyTree() {
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <Button
+            variant={branchesOpen ? "secondary" : "ghost"}
+            size="icon"
+            onClick={() => setBranchesOpen(!branchesOpen)}
+            title="Family branches"
+          >
+            <GitBranch className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}>
             <Search className="h-4 w-4" />
           </Button>
@@ -177,14 +268,34 @@ export default function FamilyTree() {
         </div>
       )}
 
-      {/* Tree */}
-      <div className="flex-1">
-        <TreeVisualization
-          ref={treeRef}
-          persons={persons}
-          relationships={relationships}
-          onPersonClick={setSelectedPerson}
-        />
+      {/* Tree + Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop sidebar */}
+        {!isMobile && branchesOpen && (
+          <div className="w-[280px] shrink-0 border-r bg-background">
+            {branchListContent}
+          </div>
+        )}
+
+        {/* Mobile sheet */}
+        {isMobile && (
+          <Sheet open={branchesOpen} onOpenChange={setBranchesOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <SheetTitle className="sr-only">Family Branches</SheetTitle>
+              {branchListContent}
+            </SheetContent>
+          </Sheet>
+        )}
+
+        {/* Tree canvas */}
+        <div className="flex-1">
+          <TreeVisualization
+            ref={treeRef}
+            persons={persons}
+            relationships={relationships}
+            onPersonClick={setSelectedPerson}
+          />
+        </div>
       </div>
 
       {/* Person profile dialog */}
