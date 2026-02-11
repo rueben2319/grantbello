@@ -32,6 +32,7 @@ interface NewRelEntry {
 
 export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
   const [firstName, setFirstName] = useState(person.first_name);
+  const [middleName, setMiddleName] = useState((person as any).middle_name || "");
   const [lastName, setLastName] = useState(person.last_name || "");
   const [gender, setGender] = useState<GenderType>(person.gender || "other");
   const [birthDate, setBirthDate] = useState(person.birth_date || "");
@@ -48,6 +49,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
 
   useEffect(() => {
     setFirstName(person.first_name);
+    setMiddleName((person as any).middle_name || "");
     setLastName(person.last_name || "");
     setGender(person.gender || "other");
     setBirthDate(person.birth_date || "");
@@ -95,6 +97,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
       await updatePerson.mutateAsync({
         id: person.id,
         first_name: firstName,
+        middle_name: middleName || null,
         last_name: lastName,
         gender,
         birth_date: birthDate || null,
@@ -148,10 +151,14 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
           <DialogTitle className="font-display">Edit Person</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>First Name *</Label>
               <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Middle Name</Label>
+              <Input value={middleName} onChange={(e) => setMiddleName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Last Name</Label>

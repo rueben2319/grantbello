@@ -1,0 +1,1 @@
+ALTER TABLE public.persons ADD COLUMN middle_name text DEFAULT NULL;
