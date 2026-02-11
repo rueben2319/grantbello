@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EditPersonDialog } from "@/components/EditPersonDialog";
 import { useDeletePerson } from "@/hooks/useFamily";
-import { Pencil, Trash2, Users, Heart, Baby, Calendar, ChevronRight, ArrowLeftRight } from "lucide-react";
+import { Pencil, Trash2, Users, Heart, Baby, Calendar, ChevronRight, ArrowLeftRight, UserRound } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -19,6 +19,7 @@ interface PersonProfileCardProps {
   parents: Tables<"persons">[];
   children: Tables<"persons">[];
   spouses: Tables<"persons">[];
+  siblings?: Tables<"persons">[];
   isAuthenticated: boolean;
   canEdit?: boolean;
   isAdmin?: boolean;
@@ -35,16 +36,19 @@ function RelationshipChip({ person, onClick }: { person: Tables<"persons">; onCl
       onClick={onClick}
       className="flex items-center gap-2.5 w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent group"
     >
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${genderBg}`}>
-        {person.first_name.charAt(0)}{(person.last_name || "").charAt(0)}
-      </div>
+      <Avatar className="h-8 w-8 shrink-0">
+        <AvatarImage src={person.photo_url || ""} />
+        <AvatarFallback className={`${genderBg} text-xs font-bold`}>
+          {person.first_name.charAt(0)}{(person.last_name || "").charAt(0)}
+        </AvatarFallback>
+      </Avatar>
       <span className="text-sm font-medium flex-1 truncate">{person.first_name} {person.last_name || ""}</span>
       {onClick && <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
     </button>
   );
 }
 
-export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, isAuthenticated, canEdit, isAdmin, existingPersons = [], relationships = [], familyId = "", onNavigateToPerson }: PersonProfileCardProps) {
+export function PersonProfileCard({ person, open, onClose, parents, children: kids, spouses, siblings = [], isAuthenticated, canEdit, isAdmin, existingPersons = [], relationships = [], familyId = "", onNavigateToPerson }: PersonProfileCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const deletePerson = useDeletePerson();
 
@@ -58,7 +62,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
 
   const genderFallbackBg = person.gender === "male" ? "bg-blue-600" : person.gender === "female" ? "bg-pink-500" : "bg-teal-500";
 
-  const hasRelationships = parents.length > 0 || spouses.length > 0 || kids.length > 0;
+  const hasRelationships = parents.length > 0 || spouses.length > 0 || kids.length > 0 || siblings.length > 0;
 
   return (
     <>
@@ -66,7 +70,6 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto p-0 gap-0 rounded-xl">
           {/* Hero Banner */}
           <div className={`relative ${gradientClass} h-28 rounded-t-xl`}>
-            {/* Action buttons */}
             {canEdit && (
               <div className="absolute top-3 right-10 flex items-center gap-1 z-10">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20" onClick={() => setEditOpen(true)}>
@@ -177,6 +180,18 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spouse(s)</span>
                   </div>
                   {spouses.map((s) => (
+                    <RelationshipChip key={s.id} person={s} onClick={onNavigateToPerson ? () => onNavigateToPerson(s) : undefined} />
+                  ))}
+                </div>
+              )}
+
+              {siblings.length > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <UserRound className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Siblings</span>
+                  </div>
+                  {siblings.map((s) => (
                     <RelationshipChip key={s.id} person={s} onClick={onNavigateToPerson ? () => onNavigateToPerson(s) : undefined} />
                   ))}
                 </div>

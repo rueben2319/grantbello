@@ -69,6 +69,20 @@ export default function FamilyTree() {
     return persons.filter((p) => spouseIds.includes(p.id));
   };
 
+  const getSiblings = (personId: string) => {
+    // Find this person's parents
+    const parentIds = relationships
+      .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
+      .map((r) => r.person_id);
+    if (parentIds.length === 0) return [];
+    // Find all children of those parents, excluding self
+    const siblingIds = new Set<string>();
+    relationships
+      .filter((r) => r.relationship_type === "parent" && parentIds.includes(r.person_id) && r.related_person_id !== personId)
+      .forEach((r) => siblingIds.add(r.related_person_id));
+    return persons.filter((p) => siblingIds.has(p.id));
+  };
+
   if (loadingFamily) {
     return (
       <div className="min-h-screen bg-background">
@@ -181,6 +195,7 @@ export default function FamilyTree() {
         parents={selectedPerson ? getParents(selectedPerson.id) : []}
         children={selectedPerson ? getChildren(selectedPerson.id) : []}
         spouses={selectedPerson ? getSpouses(selectedPerson.id) : []}
+        siblings={selectedPerson ? getSiblings(selectedPerson.id) : []}
         isAuthenticated={!!user}
         canEdit={canEdit}
         isAdmin={isAdmin}
