@@ -1,68 +1,49 @@
 
 
-# 🌳 Family Tree App — "Roots & Branches"
+# Modern Profile Card Redesign
 
-A hybrid public/private family tree platform with interactive visualization, role-based access, and full profile management.
+## Overview
+Redesign the PersonProfileCard from its current plain dialog layout into a visually striking, modern card with a hero-style header, better visual hierarchy, and polished details.
 
----
+## Design Concept
 
-## 1. Authentication & User Management
-- Sign up / login with email (via Lovable Cloud auth)
-- User profile with display name and avatar
-- Protected routes for private content
+**Header Section (Hero Banner)**
+- A colored gradient banner at the top based on gender (blue for male, pink for female, teal for other) that spans the full width of the dialog
+- Large centered avatar overlapping the banner edge
+- Full name displayed prominently below the avatar in Space Grotesk
+- Gender badge and life dates (born/died) displayed as subtle pill indicators beneath the name
+- Edit and delete action buttons positioned as icon buttons in the top-right corner of the banner
 
-## 2. Database & Data Model
-- **Families** table: family name, description, public/private toggle
-- **Persons** table: first name, last name, gender, birth/death dates, bio, photo URL, privacy flag per person
-- **Relationships** table: linking two persons with type (parent, spouse)
-- **Family Roles** table: user-to-family role mapping (admin, editor, viewer) — controls who can edit
-- Row-Level Security (RLS) policies enforcing public vs. private access and role-based editing
+**Bio Section**
+- Clean card-style section with a subtle background and an italic quote-style presentation
+- Only shown if a bio exists and user is authenticated
 
-## 3. Public View (No Login Required)
-- Browse public family trees
-- See tree structure with first names, last names, gender, and relationship connections
-- Private details (dates, photos, bios) are hidden
-- Clean, read-only interactive tree visualization
+**Relationships Section**
+- Three distinct sections (Parents, Spouse(s), Children) displayed as mini profile chips rather than plain badges
+- Each chip shows initials in a small colored circle + full name
+- Clickable chips with hover animation to navigate to that person's node
+- Section headers use icons (Users for parents, Heart for spouse, Baby for children) alongside text labels
+- If a section has no data, it's hidden entirely
 
-## 4. Private View (Login Required)
-- Full person profiles with all details: dates, places, bio, photos
-- View restricted to users who belong to the family (viewer, editor, or admin)
+**Footer**
+- Subtle "married into family" indicator if applicable
+- Muted timestamp showing when the record was last updated
 
-## 5. Interactive Family Tree Visualization
-- Tree/hierarchy layout rendered with D3.js
-- Zoom, pan, and pinch support for mobile
-- Click/tap a person to open their profile card
-- Visual distinction between generations and relationship types
-- Responsive: works fullscreen on mobile with gesture support
+## Technical Details
 
-## 6. Person Profile Pages
-- Detailed profile view: photo, full name, dates, bio, relationships
-- Shows parents, children, spouse, and computed relationships (siblings)
-- Photo display from Lovable Cloud storage
+### File Changes
 
-## 7. Editing & Management (Admin/Editor)
-- Add new person (with relationship: child, parent, or spouse of existing person)
-- Edit person details and upload photos
-- Define/edit relationships between people
-- Family settings: rename family, toggle public/private
-- Admin can invite users and assign roles (admin, editor, viewer)
+**`src/components/PersonProfileCard.tsx`** -- Full rewrite of the JSX layout:
+- Import additional Lucide icons: `Users`, `Heart`, `Baby`, `Calendar`, `ChevronRight`
+- Import `Separator` component for visual dividers
+- Restructure the dialog content with:
+  - Remove default `DialogHeader`; use a custom gradient banner `div` with `rounded-t-lg` and gender-based gradient classes
+  - Avatar centered with negative margin to overlap the banner
+  - Name + metadata centered below avatar
+  - Bio in a rounded muted-background container
+  - Relationship sections as clickable row items with icon, name, and chevron
+- Keep all existing logic (delete, edit, navigate) intact -- only the presentation layer changes
+- Mobile-friendly: the dialog remains scrollable with `max-h-[90vh]`
 
-## 8. Family Dashboard
-- Overview of your families
-- Create a new family tree
-- Quick stats: number of members, generations
-- Switch between families
-
-## 9. Design & UX — Modern & Bold
-- Strong accent colors with dark/light mode support
-- Bold typography with clear hierarchy
-- Card-based layouts for profiles
-- Smooth animations and transitions
-- Mobile-first responsive design with bottom navigation on small screens
-- Full-screen tree view with floating controls
-
-## 10. File Storage
-- Photo uploads stored in Lovable Cloud storage buckets
-- Profile photos and family documents
-- Secure access based on family membership
+No new files, no database changes, no new dependencies needed. Uses existing Tailwind classes, Lucide icons, and shadcn/ui components already in the project.
 
