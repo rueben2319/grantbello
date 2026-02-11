@@ -67,7 +67,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto p-0 gap-0 rounded-xl">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-xl">
           {/* Hero Banner */}
           <div className={`relative ${gradientClass} h-28 rounded-t-xl`}>
             {canEdit && (
