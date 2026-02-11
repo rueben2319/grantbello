@@ -72,6 +72,7 @@ function GenerationLabel({ gen }: { gen: number }) {
 }
 
 export function BranchList({ branches, onSelectBranch, onClose }: BranchListProps) {
+  // Note: The parent component controls sidebar width
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
