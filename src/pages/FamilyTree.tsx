@@ -31,6 +31,35 @@ export default function FamilyTree() {
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
 
+  // Compute generation level for each person
+  const generationMap = useMemo(() => {
+    const memo = new Map<string, number>();
+
+    const getGeneration = (personId: string): number => {
+      if (memo.has(personId)) return memo.get(personId)!;
+
+      const parentIds = relationships
+        .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
+        .map((r) => r.person_id);
+
+      if (parentIds.length === 0) {
+        memo.set(personId, 1);
+        return 1;
+      }
+
+      const maxParentGen = Math.max(...parentIds.map(getGeneration));
+      const gen = maxParentGen + 1;
+      memo.set(personId, gen);
+      return gen;
+    };
+
+    for (const person of persons) {
+      getGeneration(person.id);
+    }
+
+    return memo;
+  }, [persons, relationships]);
+
   // Compute branches
   const branches = useMemo<Branch[]>(() => {
     const result: Branch[] = [];
@@ -64,6 +93,7 @@ export default function FamilyTree() {
         persons: [primary, secondary],
         childCount,
         primaryPersonId: primary.id,
+        generation: generationMap.get(primary.id) || 1,
       });
 
       usedPersonIds.add(p1.id);
@@ -88,18 +118,20 @@ export default function FamilyTree() {
         persons: [person, undefined],
         childCount: children.size,
         primaryPersonId: parentId,
+        generation: generationMap.get(parentId) || 1,
       });
     }
 
-    // Sort by birth date (oldest first), nulls last
+    // Sort by generation (oldest first), then by birth date
     result.sort((a, b) => {
+      if (a.generation !== b.generation) return a.generation - b.generation;
       const da = a.persons[0].birth_date || "9999";
       const db = b.persons[0].birth_date || "9999";
       return da.localeCompare(db);
     });
 
     return result;
-  }, [persons, relationships]);
+  }, [persons, relationships, generationMap]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];

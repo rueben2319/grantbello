@@ -9,6 +9,7 @@ export interface Branch {
   persons: [Tables<"persons">, Tables<"persons">?];
   childCount: number;
   primaryPersonId: string;
+  generation: number;
 }
 
 interface BranchListProps {
@@ -50,52 +51,66 @@ function BranchLabel({ branch }: { branch: Branch }) {
   );
 }
 
+function GenerationLabel({ gen }: { gen: number }) {
+  const labels: { [key: number]: string } = {
+    1: "Gen 1",
+    2: "Gen 2",
+    3: "Gen 3",
+    4: "Gen 4",
+    5: "Gen 5",
+  };
+  return <span className="text-xs text-muted-foreground whitespace-nowrap">{labels[gen] || `Gen ${gen}`}</span>;
+}
+
 export function BranchList({ branches, onSelectBranch, onClose }: BranchListProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-sm font-bold">Family Branches</h2>
+      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <GitBranch className="h-4 w-4 text-primary shrink-0" />
+          <h2 className="font-display text-sm font-bold truncate">Family Branches</h2>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
       {/* List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 overflow-hidden">
         {branches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center px-4">
             <GitBranch className="mb-3 h-10 w-10 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No family branches yet</p>
           </div>
         ) : (
-          <div className="p-2 space-y-1">
+          <div className="p-3 space-y-2">
             {branches.map((branch) => (
               <button
                 key={branch.id}
                 onClick={() => onSelectBranch(branch)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent group"
+                className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent group"
               >
                 {/* Avatars */}
-                <div className="flex shrink-0 -space-x-2">
+                <div className="flex shrink-0 -space-x-2 pt-0.5">
                   <PersonAvatar person={branch.persons[0]} />
-                  {branch.persons[1] && (
-                    <PersonAvatar person={branch.persons[1]} />
-                  )}
+                  {branch.persons[1] && <PersonAvatar person={branch.persons[1]} />}
                 </div>
 
-                {/* Text */}
+                {/* Text - flex-1 for proper overflow handling */}
                 <div className="min-w-0 flex-1">
                   <BranchLabel branch={branch} />
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Baby className="h-3 w-3" />
-                    <span>
+                    <Baby className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
                       {branch.childCount} {branch.childCount === 1 ? "child" : "children"}
                     </span>
                   </div>
+                </div>
+
+                {/* Generation Badge - right aligned, no shrink */}
+                <div className="flex items-center justify-center h-7 px-2 rounded-md bg-primary/10 text-primary shrink-0">
+                  <GenerationLabel gen={branch.generation} />
                 </div>
               </button>
             ))}
