@@ -21,6 +21,7 @@ type LayoutNode = CoupleNode | SingleNode;
 
 export interface TreeVisualizationHandle {
   focusPerson: (personId: string) => void;
+  focusPersons: (personIds: string[]) => void;
 }
 
 interface TreeVisualizationProps {
@@ -489,21 +490,34 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
 
   }, [layoutData, onPersonClick]);
 
-  useImperativeHandle(ref, () => ({
-    focusPerson: (personId: string) => {
-      const pos = personPositionsRef.current.get(personId);
-      if (!pos || !svgRef.current || !containerRef.current || !zoomRef.current) return;
-      const svg = d3.select(svgRef.current);
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      const scale = 1.5;
-      const transform = d3.zoomIdentity
-        .translate(width / 2 - pos.x * scale, height / 2 - pos.y * scale)
-        .scale(scale);
-      svg.transition().duration(600).call(zoomRef.current.transform, transform);
+  const focusOnPositions = useCallback((positions: { x: number; y: number }[]) => {
+    if (!positions.length || !svgRef.current || !containerRef.current || !zoomRef.current) return;
+    const svg = d3.select(svgRef.current);
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
 
-      // Flash highlight
-      const g = svg.select("g");
+    const minX = Math.min(...positions.map(p => p.x));
+    const maxX = Math.max(...positions.map(p => p.x));
+    const minY = Math.min(...positions.map(p => p.y));
+    const maxY = Math.max(...positions.map(p => p.y));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    // Scale to fit all positions with padding
+    const spanX = maxX - minX + 120;
+    const spanY = maxY - minY + 120;
+    const scale = positions.length === 1
+      ? 1.5
+      : Math.min(1.5, width / Math.max(spanX, 1), height / Math.max(spanY, 1));
+
+    const transform = d3.zoomIdentity
+      .translate(width / 2 - centerX * scale, height / 2 - centerY * scale)
+      .scale(scale);
+    svg.transition().duration(600).call(zoomRef.current!.transform, transform);
+
+    // Flash highlight on all positions
+    const g = svg.select("g");
+    positions.forEach(pos => {
       const ring = g.append("circle")
         .attr("cx", pos.x).attr("cy", pos.y).attr("r", 38)
         .attr("fill", "none")
@@ -511,8 +525,23 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         .attr("stroke-width", 4)
         .attr("opacity", 1);
       ring.transition().duration(1500).attr("r", 50).attr("opacity", 0).remove();
+    });
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    focusPerson: (personId: string) => {
+      const pos = personPositionsRef.current.get(personId);
+      if (!pos) return;
+      focusOnPositions([pos]);
     },
-  }), []);
+    focusPersons: (personIds: string[]) => {
+      const positions = personIds
+        .map(id => personPositionsRef.current.get(id))
+        .filter(Boolean) as { x: number; y: number }[];
+      if (positions.length === 0) return;
+      focusOnPositions(positions);
+    },
+  }), [focusOnPositions]);
 
   useEffect(() => {
     renderTree();

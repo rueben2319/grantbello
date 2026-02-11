@@ -151,7 +151,9 @@ export default function FamilyTree() {
 
   const handleSelectBranch = (branch: Branch) => {
     if (isMobile) setBranchesOpen(false);
-    treeRef.current?.focusPerson(branch.primaryPersonId);
+    // Focus on both spouse nodes if it's a couple branch
+    const personIds = branch.persons.filter(Boolean).map(p => p!.id);
+    treeRef.current?.focusPersons(personIds);
   };
 
   const canEdit = userRole === "admin" || userRole === "editor";
@@ -304,7 +306,7 @@ export default function FamilyTree() {
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
         {!isMobile && branchesOpen && (
-          <div className="w-[280px] shrink-0 border-r bg-background">
+          <div className="w-[320px] shrink-0 border-r bg-background">
             {branchListContent}
           </div>
         )}
@@ -312,7 +314,7 @@ export default function FamilyTree() {
         {/* Mobile sheet */}
         {isMobile && (
           <Sheet open={branchesOpen} onOpenChange={setBranchesOpen}>
-            <SheetContent side="left" className="w-[280px] p-0">
+            <SheetContent side="left" className="w-[320px] p-0">
               <SheetTitle className="sr-only">Family Branches</SheetTitle>
               {branchListContent}
             </SheetContent>
