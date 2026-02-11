@@ -32,6 +32,7 @@ interface AddPersonDialogProps {
 export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPersonDialogProps) {
   const [open, setOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState<GenderType>("other");
   const [birthDate, setBirthDate] = useState("");
@@ -46,7 +47,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const createRelationship = useCreateRelationship();
 
   const reset = () => {
-    setFirstName(""); setLastName(""); setGender("other");
+    setFirstName(""); setMiddleName(""); setLastName(""); setGender("other");
     setBirthDate(""); setDeathDate(""); setBio("");
     setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
   };
@@ -71,6 +72,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
       const person = await createPerson.mutateAsync({
         family_id: familyId,
         first_name: firstName,
+        middle_name: middleName || null,
         last_name: lastName,
         gender,
         birth_date: birthDate || null,
@@ -146,10 +148,14 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
           <DialogTitle className="font-display">Add a Person</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>First Name *</Label>
               <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Middle Name</Label>
+              <Input value={middleName} onChange={(e) => setMiddleName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Last Name</Label>

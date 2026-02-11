@@ -19,7 +19,8 @@ interface BranchListProps {
 }
 
 function PersonAvatar({ person, className = "" }: { person: Tables<"persons">; className?: string }) {
-  const initials = `${person.first_name.charAt(0)}${(person.last_name || "").charAt(0)}`;
+  const m = (person as any).middle_name?.charAt(0) || "";
+  const initials = `${person.first_name.charAt(0)}${m}${(person.last_name || "").charAt(0)}`;
   const genderBg =
     person.gender === "male"
       ? "bg-blue-500/20 text-blue-700 dark:text-blue-300"
@@ -35,18 +36,26 @@ function PersonAvatar({ person, className = "" }: { person: Tables<"persons">; c
   );
 }
 
+function getInitials(person: Tables<"persons">) {
+  const f = person.first_name?.charAt(0) || "";
+  const m = (person as any).middle_name?.charAt(0) || "";
+  return m ? `${f}.${m}.` : `${f}.`;
+}
+
 function BranchLabel({ branch }: { branch: Branch }) {
   const [p1, p2] = branch.persons;
+  const i1 = getInitials(p1);
   if (p2) {
-    const sharedLast = p1.last_name && p1.last_name === p2.last_name ? ` ${p1.last_name}` : "";
-    const label = sharedLast
-      ? `${p1.first_name} & ${p2.first_name}${sharedLast}`
-      : `${p1.first_name} ${p1.last_name || ""} & ${p2.first_name} ${p2.last_name || ""}`;
-    return <span className="font-medium text-sm truncate">{label.trim()}</span>;
+    const i2 = getInitials(p2);
+    const sharedLast = p1.last_name && p1.last_name === p2.last_name;
+    if (sharedLast) {
+      return <span className="font-medium text-sm truncate">{i1} &amp; {i2} {p1.last_name}</span>;
+    }
+    return <span className="font-medium text-sm truncate">{i1} {p1.last_name || ""} &amp; {i2} {p2.last_name || ""}</span>;
   }
   return (
     <span className="font-medium text-sm truncate">
-      {p1.first_name} {p1.last_name || ""}
+      {i1} {p1.last_name || ""}
     </span>
   );
 }
