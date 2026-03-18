@@ -435,8 +435,8 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
           .attr("stroke-width", 3)
           .attr("stroke-dasharray", pp.marriedIn ? "5,3" : "none");
 
-        const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
-        const initials = name.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("").toUpperCase();
+        const nameParts = [pp.person.first_name, pp.person.middle_name, pp.person.last_name].filter(Boolean);
+        const initials = nameParts.map((p) => p!.charAt(0)).slice(0, 2).join("").toUpperCase();
 
         nodeG.append("text")
           .attr("text-anchor", "middle")
