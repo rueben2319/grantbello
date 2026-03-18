@@ -460,7 +460,7 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
           .text("✝");
       }
 
-      const name = `${pp.person.first_name} ${pp.person.last_name || ""}`.trim();
+      const name = [pp.person.first_name, pp.person.middle_name, pp.person.last_name].filter(Boolean).join(" ");
       nodeG.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "48px")

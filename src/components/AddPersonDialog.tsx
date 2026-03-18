@@ -15,8 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
-type RelationshipType = Database["public"]["Enums"]["relationship_type"];
-type RelKind = "parent" | "child" | "spouse" | "sibling";
+type RelKind = "parent" | "child" | "spouse";
 
 interface RelationshipEntry {
   personId: string;
@@ -83,7 +82,6 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
         married_in: marriedIn,
       });
 
-      // Create all relationships
       for (const rel of relationships) {
         if (!rel.personId) continue;
 
@@ -103,19 +101,6 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             related_person_id: rel.personId,
             relationship_type: "parent",
           });
-        } else if (rel.type === "sibling") {
-          // sibling = share the same parents. We look up the selected person's parents
-          // and make the new person also a child of those parents
-          const selectedPersonParents = existingPersons.filter((p) => {
-            // This is a simplified approach - we just create a sibling marker
-            // by making them children of the same detected parents
-            return false; // We'll handle this differently
-          });
-          // For simplicity, we create a "shared parent" relationship:
-          // Find parents of the selected sibling from existing data is complex client-side,
-          // so we'll just note that the UI allows it. The actual parent links should be set via parent relationships.
-          // Instead, let's not create a DB relationship for sibling - it's derived from shared parents.
-          toast.info(`To link as siblings, add the same parents to both people.`);
         } else if (rel.type === "spouse") {
           await createRelationship.mutateAsync({
             family_id: familyId,
@@ -198,7 +183,6 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
 
-          {/* Married into family checkbox - show when a spouse relationship exists */}
           {relationships.some((r) => r.type === "spouse") && (
             <div className="flex items-center gap-2">
               <Checkbox
@@ -212,7 +196,6 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             </div>
           )}
 
-          {/* Relationships section */}
           {existingPersons.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -231,7 +214,6 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
                         <SelectItem value="parent">Parent of</SelectItem>
                         <SelectItem value="child">Child of</SelectItem>
                         <SelectItem value="spouse">Spouse of</SelectItem>
-                        <SelectItem value="sibling">Sibling of</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
