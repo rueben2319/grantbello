@@ -29,8 +29,33 @@ interface PersonProfileCardProps {
   onNavigateToPerson?: (person: Tables<"persons">) => void;
 }
 
+function getGenderClasses(gender: string | null) {
+  if (gender === "male") return "bg-tree-male/20 text-tree-male";
+  if (gender === "female") return "bg-tree-female/20 text-tree-female";
+  return "bg-tree-other/20 text-tree-other";
+}
+
+function getGenderFallbackBg(gender: string | null) {
+  if (gender === "male") return "bg-tree-male";
+  if (gender === "female") return "bg-tree-female";
+  return "bg-tree-other";
+}
+
+function getGradientClass(gender: string | null) {
+  if (gender === "male") return "bg-gradient-to-br from-tree-male to-tree-male/70";
+  if (gender === "female") return "bg-gradient-to-br from-tree-female to-tree-female/70";
+  return "bg-gradient-to-br from-tree-other to-tree-other/70";
+}
+
+function formatFullName(person: Tables<"persons">) {
+  const parts = [person.first_name];
+  if (person.middle_name) parts.push(person.middle_name);
+  if (person.last_name) parts.push(person.last_name);
+  return parts.join(" ");
+}
+
 function RelationshipChip({ person, onClick }: { person: Tables<"persons">; onClick?: () => void }) {
-  const genderBg = person.gender === "male" ? "bg-blue-500/20 text-blue-700 dark:text-blue-300" : person.gender === "female" ? "bg-pink-500/20 text-pink-700 dark:text-pink-300" : "bg-teal-500/20 text-teal-700 dark:text-teal-300";
+  const genderClasses = getGenderClasses(person.gender);
   return (
     <button
       onClick={onClick}
@@ -38,11 +63,11 @@ function RelationshipChip({ person, onClick }: { person: Tables<"persons">; onCl
     >
       <Avatar className="h-8 w-8 shrink-0">
         <AvatarImage src={person.photo_url || ""} />
-        <AvatarFallback className={`${genderBg} text-xs font-bold`}>
+        <AvatarFallback className={`${genderClasses} text-xs font-bold`}>
           {person.first_name.charAt(0)}{(person.last_name || "").charAt(0)}
         </AvatarFallback>
       </Avatar>
-      <span className="text-sm font-medium flex-1 truncate">{person.first_name} {person.last_name || ""}</span>
+      <span className="text-sm font-medium flex-1 truncate">{formatFullName(person)}</span>
       {onClick && <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
     </button>
   );
@@ -54,14 +79,8 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
 
   if (!person) return null;
 
-  const gradientClass = person.gender === "male"
-    ? "bg-gradient-to-br from-blue-500 to-blue-700"
-    : person.gender === "female"
-      ? "bg-gradient-to-br from-pink-400 to-pink-600"
-      : "bg-gradient-to-br from-teal-400 to-teal-600";
-
-  const genderFallbackBg = person.gender === "male" ? "bg-blue-600" : person.gender === "female" ? "bg-pink-500" : "bg-teal-500";
-
+  const gradientClass = getGradientClass(person.gender);
+  const genderFallbackBg = getGenderFallbackBg(person.gender);
   const hasRelationships = parents.length > 0 || spouses.length > 0 || kids.length > 0 || siblings.length > 0;
 
   return (
@@ -129,7 +148,7 @@ export function PersonProfileCard({ person, open, onClose, parents, children: ki
           {/* Name & metadata */}
           <div className="text-center px-6 pt-3 pb-1">
             <h2 className="font-display text-xl font-bold tracking-tight">
-              {person.first_name} {person.last_name}
+              {formatFullName(person)}
             </h2>
             <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
               <Badge variant="outline" className="capitalize text-xs">{person.gender}</Badge>

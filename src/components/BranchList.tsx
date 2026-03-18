@@ -18,27 +18,27 @@ interface BranchListProps {
   onClose: () => void;
 }
 
+function getGenderClasses(gender: string | null) {
+  if (gender === "male") return "bg-tree-male/20 text-tree-male";
+  if (gender === "female") return "bg-tree-female/20 text-tree-female";
+  return "bg-tree-other/20 text-tree-other";
+}
+
 function PersonAvatar({ person, className = "" }: { person: Tables<"persons">; className?: string }) {
-  const m = (person as any).middle_name?.charAt(0) || "";
-  const initials = `${person.first_name.charAt(0)}${m}${(person.last_name || "").charAt(0)}`;
-  const genderBg =
-    person.gender === "male"
-      ? "bg-blue-500/20 text-blue-700 dark:text-blue-300"
-      : person.gender === "female"
-        ? "bg-pink-500/20 text-pink-700 dark:text-pink-300"
-        : "bg-teal-500/20 text-teal-700 dark:text-teal-300";
+  const initials = `${person.first_name.charAt(0)}${(person.middle_name || "").charAt(0)}${(person.last_name || "").charAt(0)}`;
+  const genderClasses = getGenderClasses(person.gender);
 
   return (
     <Avatar className={`h-9 w-9 border-2 border-background ${className}`}>
       {person.photo_url && <AvatarImage src={person.photo_url} alt={person.first_name} />}
-      <AvatarFallback className={`text-xs font-bold ${genderBg}`}>{initials}</AvatarFallback>
+      <AvatarFallback className={`text-xs font-bold ${genderClasses}`}>{initials}</AvatarFallback>
     </Avatar>
   );
 }
 
 function getInitials(person: Tables<"persons">) {
   const f = person.first_name?.charAt(0) || "";
-  const m = (person as any).middle_name?.charAt(0) || "";
+  const m = (person.middle_name || "").charAt(0);
   return m ? `${f}.${m}.` : `${f}.`;
 }
 
@@ -61,18 +61,10 @@ function BranchLabel({ branch }: { branch: Branch }) {
 }
 
 function GenerationLabel({ gen }: { gen: number }) {
-  const labels: { [key: number]: string } = {
-    1: "Gen 1",
-    2: "Gen 2",
-    3: "Gen 3",
-    4: "Gen 4",
-    5: "Gen 5",
-  };
-  return <span className="text-xs text-muted-foreground whitespace-nowrap">{labels[gen] || `Gen ${gen}`}</span>;
+  return <span className="text-xs text-muted-foreground whitespace-nowrap">Gen {gen}</span>;
 }
 
 export function BranchList({ branches, onSelectBranch, onClose }: BranchListProps) {
-  // Note: The parent component controls sidebar width
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -107,7 +99,7 @@ export function BranchList({ branches, onSelectBranch, onClose }: BranchListProp
                   {branch.persons[1] && <PersonAvatar person={branch.persons[1]} />}
                 </div>
 
-                {/* Text - flex-1 for proper overflow handling */}
+                {/* Text */}
                 <div className="min-w-0 flex-1">
                   <BranchLabel branch={branch} />
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
@@ -118,7 +110,7 @@ export function BranchList({ branches, onSelectBranch, onClose }: BranchListProp
                   </div>
                 </div>
 
-                {/* Generation Badge - right aligned, no shrink */}
+                {/* Generation Badge */}
                 <div className="flex items-center justify-center h-7 px-2 rounded-md bg-primary/10 text-primary shrink-0">
                   <GenerationLabel gen={branch.generation} />
                 </div>

@@ -32,7 +32,7 @@ interface NewRelEntry {
 
 export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
   const [firstName, setFirstName] = useState(person.first_name);
-  const [middleName, setMiddleName] = useState((person as any).middle_name || "");
+  const [middleName, setMiddleName] = useState(person.middle_name || "");
   const [lastName, setLastName] = useState(person.last_name || "");
   const [gender, setGender] = useState<GenderType>(person.gender || "other");
   const [birthDate, setBirthDate] = useState(person.birth_date || "");
@@ -40,7 +40,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
   const [photoUrl, setPhotoUrl] = useState<string | null>(person.photo_url || null);
-  const [marriedIn, setMarriedIn] = useState((person as any).married_in || false);
+  const [marriedIn, setMarriedIn] = useState(person.married_in || false);
   const [newRels, setNewRels] = useState<NewRelEntry[]>([]);
 
   const updatePerson = useUpdatePerson();
@@ -49,7 +49,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
 
   useEffect(() => {
     setFirstName(person.first_name);
-    setMiddleName((person as any).middle_name || "");
+    setMiddleName(person.middle_name || "");
     setLastName(person.last_name || "");
     setGender(person.gender || "other");
     setBirthDate(person.birth_date || "");
@@ -57,11 +57,10 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
     setPhotoUrl(person.photo_url || null);
-    setMarriedIn((person as any).married_in || false);
+    setMarriedIn(person.married_in || false);
     setNewRels([]);
   }, [person]);
 
-  // Derive existing relationships for this person
   const existingRels = relationships
     .filter((r) => r.person_id === person.id || r.related_person_id === person.id)
     .map((r) => {
@@ -108,7 +107,6 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
         married_in: marriedIn,
       });
 
-      // Create new relationships
       for (const rel of newRels) {
         if (!rel.personId) continue;
         if (rel.type === "child") {
@@ -201,7 +199,6 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
             <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
           </div>
 
-          {/* Married into family checkbox */}
           {existingRels.some((r) => r.label === "Spouse of") && (
             <div className="flex items-center gap-2">
               <Checkbox
@@ -215,7 +212,6 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
             </div>
           )}
 
-          {/* Existing relationships */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Relationships</Label>
             {existingRels.map(({ rel, label, otherPersonId }) => (
@@ -227,7 +223,6 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
               </div>
             ))}
 
-            {/* New relationships */}
             {newRels.map((rel, index) => (
               <div key={index} className="flex items-end gap-2 rounded-md border p-3">
                 <div className="flex-1 space-y-2">
