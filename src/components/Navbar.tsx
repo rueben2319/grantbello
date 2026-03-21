@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,8 +17,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { TreePine, LogOut, User, Menu } from "lucide-react";
+import { TreePine, LogOut, User, Menu, Sun, Moon } from "lucide-react";
 import { useState } from "react";
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="h-9 w-9"
+    >
+      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+}
 
 export function Navbar() {
   const { user, profile, signOut } = useAuth();
@@ -43,65 +60,69 @@ export function Navbar() {
           <span>Grant Bello</span>
         </Link>
 
-        {isMobile ? (
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-64">
-              <SheetHeader>
-                <SheetTitle className="font-display">Menu</SheetTitle>
-              </SheetHeader>
-              <nav className="mt-6 flex flex-col gap-2">
-                {user ? (
-                  <>
-                    <Button variant="ghost" className="justify-start gap-2" onClick={() => navTo("/profile")}>
-                      <User className="h-4 w-4" /> Profile
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+
+          {isMobile ? (
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64">
+                <SheetHeader>
+                  <SheetTitle className="font-display">Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="mt-6 flex flex-col gap-2">
+                  {user ? (
+                    <>
+                      <Button variant="ghost" className="justify-start gap-2" onClick={() => navTo("/profile")}>
+                        <User className="h-4 w-4" /> Profile
+                      </Button>
+                      <Button variant="ghost" className="justify-start gap-2 text-destructive" onClick={() => { setSheetOpen(false); handleSignOut(); }}>
+                        <LogOut className="h-4 w-4" /> Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <Button className="mt-2" onClick={() => navTo("/auth")}>
+                      Sign In
                     </Button>
-                    <Button variant="ghost" className="justify-start gap-2 text-destructive" onClick={() => { setSheetOpen(false); handleSignOut(); }}>
-                      <LogOut className="h-4 w-4" /> Sign Out
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <nav className="flex items-center gap-2">
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={profile?.avatar_url || ""} />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                          {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
                     </Button>
-                  </>
-                ) : (
-                  <Button className="mt-2" onClick={() => navTo("/auth")}>
-                    Sign In
-                  </Button>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <nav className="flex items-center gap-2">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatar_url || ""} />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                        {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <User className="mr-2 h-4 w-4" /> Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
-          </nav>
-        )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
+                      <User className="mr-2 h-4 w-4" /> Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+              )}
+            </nav>
+          )}
+        </div>
       </div>
     </header>
   );
