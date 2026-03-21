@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { useCreateFamily } from "@/hooks/useFamily";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
 
 export function CreateFamilyDialog() {
   const [open, setOpen] = useState(false);
@@ -28,8 +29,8 @@ export function CreateFamilyDialog() {
       setDescription("");
       setIsPublic(false);
       navigate(`/family/${family.id}`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 

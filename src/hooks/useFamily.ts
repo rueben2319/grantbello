@@ -8,19 +8,23 @@ export function useMyFamilies() {
   return useQuery({
     queryKey: ["my-families", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data: roles } = await supabase
+    queryFn: async (): Promise<(Tables<"families"> & { role: string })[]> => {
+      const { data: roles, error: rolesError } = await supabase
         .from("family_roles")
         .select("family_id, role")
         .eq("user_id", user!.id);
 
+      if (rolesError) throw new Error(rolesError.message);
+
       if (!roles?.length) return [];
 
       const familyIds = roles.map((r) => r.family_id);
-      const { data: families } = await supabase
+      const { data: families, error: familiesError } = await supabase
         .from("families")
         .select("*")
         .in("id", familyIds);
+
+      if (familiesError) throw new Error(familiesError.message);
 
       return (families || []).map((f) => ({
         ...f,
@@ -34,12 +38,14 @@ export function usePublicFamilies() {
   return useQuery({
     queryKey: ["public-families"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("families")
         .select("*")
         .eq("is_public", true)
         .order("created_at", { ascending: false });
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -49,41 +55,56 @@ export function useFamily(familyId: string | undefined) {
     queryKey: ["family", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("families")
         .select("*")
         .eq("id", familyId!)
         .single();
+
+      if (error) throw new Error(error.message);
       return data;
     },
   });
 }
 
+/**
+ * Fetches all persons belonging to a specific family.
+ * Returns an empty array while loading or if familyId is undefined.
+ * @throws {Error} if the Supabase query fails
+ */
 export function useFamilyPersons(familyId: string | undefined) {
   return useQuery({
     queryKey: ["family-persons", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("persons")
         .select("*")
         .eq("family_id", familyId!)
         .order("created_at");
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
 
+/**
+ * Fetches all parent/spouse relationships for a specific family.
+ * @throws {Error} if the Supabase query fails
+ */
 export function useFamilyRelationships(familyId: string | undefined) {
   return useQuery({
     queryKey: ["family-relationships", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("relationships")
         .select("*")
         .eq("family_id", familyId!);
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -93,11 +114,13 @@ export function useFamilyMembers(familyId: string | undefined) {
     queryKey: ["family-members", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("family_roles")
-        .select("*, profiles(display_name, avatar_url)")
+        .select("*, profiles:profiles(display_name, avatar_url)")
         .eq("family_id", familyId!);
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -108,13 +131,15 @@ export function useUserFamilyRole(familyId: string | undefined) {
     queryKey: ["user-family-role", familyId, user?.id],
     enabled: !!familyId && !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("family_roles")
         .select("role")
         .eq("family_id", familyId!)
         .eq("user_id", user!.id)
         .single();
-      return data?.role || null;
+
+      if (error) throw new Error(error.message);
+      return data?.role ?? null;
     },
   });
 }

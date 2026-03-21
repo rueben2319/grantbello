@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateFamily } from "@/hooks/useFamily";
 import { Settings } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface FamilySettingsDialogProps {
@@ -27,8 +28,8 @@ export function FamilySettingsDialog({ family }: FamilySettingsDialogProps) {
       await updateFamily.mutateAsync({ id: family.id, name, description, is_public: isPublic });
       toast.success("Family settings updated!");
       setOpen(false);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 

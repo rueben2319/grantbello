@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useFamily, useFamilyPersons, useFamilyRelationships, useUserFamilyRole } from "@/hooks/useFamily";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,8 @@ import { PersonProfileCard } from "@/components/PersonProfileCard";
 import { AddPersonDialog } from "@/components/AddPersonDialog";
 import { FamilySettingsDialog } from "@/components/FamilySettingsDialog";
 import { MemberManagement } from "@/components/MemberManagement";
-import { BranchList, type Branch } from "@/components/BranchList";
+import { BranchList } from "@/components/BranchList";
+import type { Branch } from "@/types/family";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TreePine, Search, X, GitBranch } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function FamilyTree() {
   const { familyId } = useParams<{ familyId: string }>();
@@ -159,28 +161,28 @@ export default function FamilyTree() {
   const canEdit = userRole === "admin" || userRole === "editor";
   const isAdmin = userRole === "admin";
 
-  const getParents = (personId: string) => {
+  const getParents = useCallback((personId: string) => {
     const parentIds = relationships
       .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
       .map((r) => r.person_id);
     return persons.filter((p) => parentIds.includes(p.id));
-  };
+  }, [relationships, persons]);
 
-  const getChildren = (personId: string) => {
+  const getChildren = useCallback((personId: string) => {
     const childIds = relationships
       .filter((r) => r.relationship_type === "parent" && r.person_id === personId)
       .map((r) => r.related_person_id);
     return persons.filter((p) => childIds.includes(p.id));
-  };
+  }, [relationships, persons]);
 
-  const getSpouses = (personId: string) => {
+  const getSpouses = useCallback((personId: string) => {
     const spouseIds = relationships
       .filter((r) => r.relationship_type === "spouse" && (r.person_id === personId || r.related_person_id === personId))
       .map((r) => (r.person_id === personId ? r.related_person_id : r.person_id));
     return persons.filter((p) => spouseIds.includes(p.id));
-  };
+  }, [relationships, persons]);
 
-  const getSiblings = (personId: string) => {
+  const getSiblings = useCallback((personId: string) => {
     const parentIds = relationships
       .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
       .map((r) => r.person_id);
@@ -190,7 +192,7 @@ export default function FamilyTree() {
       .filter((r) => r.relationship_type === "parent" && parentIds.includes(r.person_id) && r.related_person_id !== personId)
       .forEach((r) => siblingIds.add(r.related_person_id));
     return persons.filter((p) => siblingIds.has(p.id));
-  };
+  }, [relationships, persons]);
 
   if (loadingFamily) {
     return (
@@ -323,12 +325,18 @@ export default function FamilyTree() {
 
         {/* Tree canvas */}
         <div className="flex-1">
-          <TreeVisualization
-            ref={treeRef}
-            persons={persons}
-            relationships={relationships}
-            onPersonClick={setSelectedPerson}
-          />
+          <ErrorBoundary fallback={
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <p>Failed to render the family tree. Try refreshing.</p>
+            </div>
+          }>
+            <TreeVisualization
+              ref={treeRef}
+              persons={persons}
+              relationships={relationships}
+              onPersonClick={setSelectedPerson}
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

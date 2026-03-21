@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RootRedirect } from "@/components/RootRedirect";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -15,9 +16,15 @@ import FamilyTree from "./pages/FamilyTree";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
-
-const FAMILY_ID = "ed517e0f-8897-4ccc-b189-29a6473dcce6";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,7 +36,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<Navigate to={`/family/${FAMILY_ID}`} replace />} />
+                <Route path="/" element={<RootRedirect />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/home" element={<Index />} />
                 <Route path="/browse" element={<Browse />} />

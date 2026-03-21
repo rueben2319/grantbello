@@ -238,8 +238,8 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         const p1x = centerX - COUPLE_GAP / 2;
         const p2x = centerX + COUPLE_GAP / 2;
 
-        posPersons.push({ x: p1x, y, person: p1, marriedIn: !!(p1 as any).married_in, deceased: !!p1.death_date });
-        posPersons.push({ x: p2x, y, person: p2, marriedIn: !!(p2 as any).married_in, deceased: !!p2.death_date });
+        posPersons.push({ x: p1x, y, person: p1, marriedIn: !!p1.married_in, deceased: !!p1.death_date });
+        posPersons.push({ x: p2x, y, person: p2, marriedIn: !!p2.married_in, deceased: !!p2.death_date });
 
         // Tag children with birth order
         const childCount = node.children.length;

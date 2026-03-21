@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
 import { UserPlus, Plus, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -115,8 +116,8 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
       reset();
       setOpen(false);
       onAdded?.();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 
