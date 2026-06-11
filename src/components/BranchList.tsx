@@ -73,7 +73,7 @@ export function BranchList({ branches, onSelectBranch, onClose }: BranchListProp
           <GitBranch className="h-4 w-4 text-primary shrink-0" />
           <h2 className="font-display text-sm font-bold truncate">Family Branches</h2>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose} aria-label="Close branches panel">
           <X className="h-4 w-4" />
         </Button>
       </div>

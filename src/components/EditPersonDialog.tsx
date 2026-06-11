@@ -11,8 +11,8 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
-import type { Database } from "@/integrations/supabase/types";
+import type { Tables, Database } from "@/integrations/supabase/types";
+import { getErrorMessage } from "@/lib/utils";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 
@@ -85,8 +85,8 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
     try {
       await deleteRelationship.mutateAsync({ id: relId, familyId });
       toast.success("Relationship removed");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -135,8 +135,8 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
 
       toast.success("Person updated!");
       onClose();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -229,7 +229,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
                   <Label className="text-xs">This person is...</Label>
                   <Select value={rel.type} onValueChange={(v) => {
                     const updated = [...newRels];
-                    updated[index] = { ...updated[index], type: v as any };
+                    updated[index] = { ...updated[index], type: v as NewRelEntry["type"] };
                     setNewRels(updated);
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
