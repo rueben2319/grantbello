@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 export function useMyFamilies() {
   const { user } = useAuth();
@@ -9,18 +9,20 @@ export function useMyFamilies() {
     queryKey: ["my-families", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("family_roles")
         .select("family_id, role")
         .eq("user_id", user!.id);
+      if (rolesError) throw rolesError;
 
       if (!roles?.length) return [];
 
       const familyIds = roles.map((r) => r.family_id);
-      const { data: families } = await supabase
+      const { data: families, error: familiesError } = await supabase
         .from("families")
         .select("*")
         .in("id", familyIds);
+      if (familiesError) throw familiesError;
 
       return (families || []).map((f) => ({
         ...f,
@@ -34,11 +36,12 @@ export function usePublicFamilies() {
   return useQuery({
     queryKey: ["public-families"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("families")
         .select("*")
         .eq("is_public", true)
         .order("created_at", { ascending: false });
+      if (error) throw error;
       return data || [];
     },
   });
@@ -49,11 +52,12 @@ export function useFamily(familyId: string | undefined) {
     queryKey: ["family", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("families")
         .select("*")
         .eq("id", familyId!)
-        .single();
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
   });
@@ -64,11 +68,12 @@ export function useFamilyPersons(familyId: string | undefined) {
     queryKey: ["family-persons", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("persons")
         .select("*")
         .eq("family_id", familyId!)
         .order("created_at");
+      if (error) throw error;
       return data || [];
     },
   });
@@ -79,10 +84,11 @@ export function useFamilyRelationships(familyId: string | undefined) {
     queryKey: ["family-relationships", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("relationships")
         .select("*")
         .eq("family_id", familyId!);
+      if (error) throw error;
       return data || [];
     },
   });
@@ -93,10 +99,11 @@ export function useFamilyMembers(familyId: string | undefined) {
     queryKey: ["family-members", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("family_roles")
         .select("*, profiles(display_name, avatar_url)")
         .eq("family_id", familyId!);
+      if (error) throw error;
       return data || [];
     },
   });
@@ -108,12 +115,13 @@ export function useUserFamilyRole(familyId: string | undefined) {
     queryKey: ["user-family-role", familyId, user?.id],
     enabled: !!familyId && !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("family_roles")
         .select("role")
         .eq("family_id", familyId!)
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
+      if (error) throw error;
       return data?.role || null;
     },
   });
@@ -219,6 +227,7 @@ export function useDeleteRelationship() {
     },
     onSuccess: (familyId) => {
       queryClient.invalidateQueries({ queryKey: ["family-relationships", familyId] });
+      queryClient.invalidateQueries({ queryKey: ["family-persons", familyId] });
     },
   });
 }

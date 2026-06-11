@@ -31,30 +31,32 @@ export default function FamilyTree() {
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
 
-  // Compute generation level for each person
+  // Compute generation level for each person (cycle-safe)
   const generationMap = useMemo(() => {
     const memo = new Map<string, number>();
 
-    const getGeneration = (personId: string): number => {
+    const getGeneration = (personId: string, visiting: Set<string>): number => {
       if (memo.has(personId)) return memo.get(personId)!;
+      if (visiting.has(personId)) return 1; // cycle guard
+      visiting.add(personId);
 
       const parentIds = relationships
         .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
         .map((r) => r.person_id);
 
+      let gen: number;
       if (parentIds.length === 0) {
-        memo.set(personId, 1);
-        return 1;
+        gen = 1;
+      } else {
+        gen = Math.max(...parentIds.map((pid) => getGeneration(pid, visiting))) + 1;
       }
-
-      const maxParentGen = Math.max(...parentIds.map(getGeneration));
-      const gen = maxParentGen + 1;
+      visiting.delete(personId);
       memo.set(personId, gen);
       return gen;
     };
 
     for (const person of persons) {
-      getGeneration(person.id);
+      getGeneration(person.id, new Set());
     }
 
     return memo;
@@ -242,10 +244,16 @@ export default function FamilyTree() {
             size="icon"
             onClick={() => setBranchesOpen(!branchesOpen)}
             title="Family branches"
+            aria-label="Toggle family branches panel"
           >
             <GitBranch className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}
+            aria-label="Search family members"
+          >
             <Search className="h-4 w-4" />
           </Button>
           {canEdit && <AddPersonDialog familyId={family.id} existingPersons={persons} />}
