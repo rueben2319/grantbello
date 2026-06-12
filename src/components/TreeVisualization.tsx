@@ -28,9 +28,10 @@ interface TreeVisualizationProps {
   persons: Tables<"persons">[];
   relationships: Tables<"relationships">[];
   onPersonClick: (person: Tables<"persons">) => void;
+  highlightedPersonIds?: Set<string> | null;
 }
 
-export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisualizationProps>(function TreeVisualization({ persons, relationships, onPersonClick }, ref) {
+export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisualizationProps>(function TreeVisualization({ persons, relationships, onPersonClick, highlightedPersonIds }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
