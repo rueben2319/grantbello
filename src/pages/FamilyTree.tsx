@@ -434,7 +434,9 @@ export default function FamilyTree() {
             persons={persons}
             relationships={relationships}
             onPersonClick={setSelectedPerson}
+            highlightedPersonIds={highlightedPersonIds}
           />
+        </div>
         </div>
       </div>
 
