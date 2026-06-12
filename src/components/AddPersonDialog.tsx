@@ -10,9 +10,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
 import { UserPlus, Plus, X } from "lucide-react";
-import { toast } from "sonner";
-import type { Tables, Database } from "@/integrations/supabase/types";
-import { getErrorMessage } from "@/lib/utils";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
+import type { Tables } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 type RelKind = "parent" | "child" | "spouse";

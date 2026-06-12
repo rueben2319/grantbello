@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateFamily } from "@/hooks/useFamily";
 import { Settings } from "lucide-react";
-import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface FamilySettingsDialogProps {

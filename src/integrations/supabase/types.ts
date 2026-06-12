@@ -232,8 +232,8 @@ export type Database = {
       find_profile_by_email: {
         Args: { _email: string; _family_id: string }
         Returns: {
-          avatar_url: string
-          display_name: string
+          avatar_url: string | null
+          display_name: string | null
           user_id: string
         }[]
       }

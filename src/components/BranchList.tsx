@@ -1,16 +1,9 @@
 import type { Tables } from "@/integrations/supabase/types";
+import type { Branch } from "@/types/family";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { X, GitBranch, Baby } from "lucide-react";
-
-export interface Branch {
-  id: string;
-  persons: [Tables<"persons">, Tables<"persons">?];
-  childCount: number;
-  primaryPersonId: string;
-  generation: number;
-}
 
 interface BranchListProps {
   branches: Branch[];

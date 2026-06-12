@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
-import { toast } from "sonner";
-import type { Tables, Database } from "@/integrations/supabase/types";
-import { getErrorMessage } from "@/lib/utils";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
+import type { Tables } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 
@@ -229,7 +230,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
                   <Label className="text-xs">This person is...</Label>
                   <Select value={rel.type} onValueChange={(v) => {
                     const updated = [...newRels];
-                    updated[index] = { ...updated[index], type: v as NewRelEntry["type"] };
+                    updated[index] = { ...updated[index], type: v as "parent" | "child" | "spouse" };
                     setNewRels(updated);
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

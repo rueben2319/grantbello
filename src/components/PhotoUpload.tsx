@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, X, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/errors";
 
 interface PhotoUploadProps {
   currentUrl?: string | null;
@@ -47,7 +47,7 @@ export function PhotoUpload({ currentUrl, onUploaded, onRemoved, familyId }: Pho
       onUploaded(urlData.publicUrl);
       toast.success("Photo uploaded!");
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Upload failed"));
+      toast.error(getErrorMessage(err));
     } finally {
       setUploading(false);
     }

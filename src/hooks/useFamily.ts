@@ -8,12 +8,14 @@ export function useMyFamilies() {
   return useQuery({
     queryKey: ["my-families", user?.id],
     enabled: !!user,
-    queryFn: async () => {
+    queryFn: async (): Promise<(Tables<"families"> & { role: string })[]> => {
       const { data: roles, error: rolesError } = await supabase
         .from("family_roles")
         .select("family_id, role")
         .eq("user_id", user!.id);
       if (rolesError) throw rolesError;
+
+      if (rolesError) throw new Error(rolesError.message);
 
       if (!roles?.length) return [];
 
@@ -23,6 +25,8 @@ export function useMyFamilies() {
         .select("*")
         .in("id", familyIds);
       if (familiesError) throw familiesError;
+
+      if (familiesError) throw new Error(familiesError.message);
 
       return (families || []).map((f) => ({
         ...f,
@@ -41,8 +45,9 @@ export function usePublicFamilies() {
         .select("*")
         .eq("is_public", true)
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -56,13 +61,19 @@ export function useFamily(familyId: string | undefined) {
         .from("families")
         .select("*")
         .eq("id", familyId!)
-        .maybeSingle();
-      if (error) throw error;
+        .single();
+
+      if (error) throw new Error(error.message);
       return data;
     },
   });
 }
 
+/**
+ * Fetches all persons belonging to a specific family.
+ * Returns an empty array while loading or if familyId is undefined.
+ * @throws {Error} if the Supabase query fails
+ */
 export function useFamilyPersons(familyId: string | undefined) {
   return useQuery({
     queryKey: ["family-persons", familyId],
@@ -73,12 +84,17 @@ export function useFamilyPersons(familyId: string | undefined) {
         .select("*")
         .eq("family_id", familyId!)
         .order("created_at");
-      if (error) throw error;
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
 
+/**
+ * Fetches all parent/spouse relationships for a specific family.
+ * @throws {Error} if the Supabase query fails
+ */
 export function useFamilyRelationships(familyId: string | undefined) {
   return useQuery({
     queryKey: ["family-relationships", familyId],
@@ -88,8 +104,9 @@ export function useFamilyRelationships(familyId: string | undefined) {
         .from("relationships")
         .select("*")
         .eq("family_id", familyId!);
-      if (error) throw error;
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -101,10 +118,11 @@ export function useFamilyMembers(familyId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("family_roles")
-        .select("*, profiles(display_name, avatar_url)")
+        .select("*, profiles:profiles(display_name, avatar_url)")
         .eq("family_id", familyId!);
-      if (error) throw error;
-      return data || [];
+
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
   });
 }
@@ -120,9 +138,10 @@ export function useUserFamilyRole(familyId: string | undefined) {
         .select("role")
         .eq("family_id", familyId!)
         .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data?.role || null;
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data?.role ?? null;
     },
   });
 }
