@@ -496,7 +496,7 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
     // Store zoom ref for external use
     zoomRef.current = zoom;
 
-  }, [layoutData, onPersonClick]);
+  }, [layoutData, onPersonClick, highlightedPersonIds]);
 
   const focusOnPositions = useCallback((positions: { x: number; y: number }[]) => {
     if (!positions.length || !svgRef.current || !containerRef.current || !zoomRef.current) return;
