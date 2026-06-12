@@ -354,6 +354,10 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
       svg.call(zoom.transform, initialTransform);
     }
 
+    const isFiltering = !!(highlightedPersonIds && highlightedPersonIds.size > 0);
+    const isHighlighted = (id: string) => !isFiltering || highlightedPersonIds!.has(id);
+    const DIM_OPACITY = 0.12;
+
     // Draw couple lines
     posCoupleLines.forEach((cl) => {
       g.append("line")
@@ -362,7 +366,7 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         .attr("stroke", "hsl(var(--primary))")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "6,4")
-        .attr("opacity", 0.7);
+        .attr("opacity", isFiltering ? 0.15 : 0.7);
     });
 
     // Draw links
@@ -371,15 +375,18 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         .attr("d", `M${l.parentX},${l.parentY} C${l.parentX},${(l.parentY + l.childY) / 2} ${l.childX},${(l.parentY + l.childY) / 2} ${l.childX},${l.childY}`)
         .attr("fill", "none")
         .attr("stroke", "hsl(var(--tree-line))")
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 2)
+        .attr("opacity", isFiltering ? 0.2 : 1);
     });
 
     // Draw nodes
     posPersons.forEach((pp) => {
+      const baseOpacity = pp.deceased ? 0.6 : 1;
+      const opacity = isHighlighted(pp.person.id) ? baseOpacity : DIM_OPACITY;
       const nodeG = g.append("g")
         .attr("transform", `translate(${pp.x},${pp.y})`)
         .style("cursor", "pointer")
-        .style("opacity", pp.deceased ? 0.6 : 1)
+        .style("opacity", opacity)
         .on("click", () => onPersonClick(pp.person));
 
       const hasPhoto = !!pp.person.photo_url;
