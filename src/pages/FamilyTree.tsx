@@ -31,35 +31,86 @@ export default function FamilyTree() {
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
 
-  // Compute generation level for each person (cycle-safe)
+  // Strict generation map: anchored to the founding root, propagated via
+  // parent->child links downward. Spouses inherit their partner's generation.
   const generationMap = useMemo(() => {
-    const memo = new Map<string, number>();
+    const gen = new Map<string, number>();
+    if (persons.length === 0) return gen;
 
-    const getGeneration = (personId: string, visiting: Set<string>): number => {
-      if (memo.has(personId)) return memo.get(personId)!;
-      if (visiting.has(personId)) return 1; // cycle guard
-      visiting.add(personId);
+    const childrenOf = new Map<string, Set<string>>();
+    const parentsOf = new Map<string, Set<string>>();
+    const spousesOf = new Map<string, Set<string>>();
 
-      const parentIds = relationships
-        .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
-        .map((r) => r.person_id);
-
-      let gen: number;
-      if (parentIds.length === 0) {
-        gen = 1;
-      } else {
-        gen = Math.max(...parentIds.map((pid) => getGeneration(pid, visiting))) + 1;
+    for (const r of relationships) {
+      if (r.relationship_type === "parent") {
+        if (!childrenOf.has(r.person_id)) childrenOf.set(r.person_id, new Set());
+        childrenOf.get(r.person_id)!.add(r.related_person_id);
+        if (!parentsOf.has(r.related_person_id)) parentsOf.set(r.related_person_id, new Set());
+        parentsOf.get(r.related_person_id)!.add(r.person_id);
+      } else if (r.relationship_type === "spouse") {
+        if (!spousesOf.has(r.person_id)) spousesOf.set(r.person_id, new Set());
+        spousesOf.get(r.person_id)!.add(r.related_person_id);
+        if (!spousesOf.has(r.related_person_id)) spousesOf.set(r.related_person_id, new Set());
+        spousesOf.get(r.related_person_id)!.add(r.person_id);
       }
-      visiting.delete(personId);
-      memo.set(personId, gen);
-      return gen;
-    };
-
-    for (const person of persons) {
-      getGeneration(person.id, new Set());
     }
 
-    return memo;
+    // Candidate roots: persons with no parents in the tree AND not married-in.
+    const rootCandidates = persons.filter(
+      (p) => !p.married_in && !(parentsOf.get(p.id)?.size)
+    );
+
+    const descendantCount = (id: string): number => {
+      const seen = new Set<string>();
+      const stack = [id];
+      while (stack.length) {
+        const cur = stack.pop()!;
+        for (const k of childrenOf.get(cur) || []) {
+          if (!seen.has(k)) { seen.add(k); stack.push(k); }
+        }
+      }
+      return seen.size;
+    };
+
+    const sortedRoots = [...rootCandidates].sort((a, b) => {
+      const dc = descendantCount(b.id) - descendantCount(a.id);
+      if (dc !== 0) return dc;
+      const ba = a.birth_date || "9999";
+      const bb = b.birth_date || "9999";
+      if (ba !== bb) return ba.localeCompare(bb);
+      return (a.created_at || "").localeCompare(b.created_at || "");
+    });
+
+    const foundingRoot = sortedRoots[0] || persons[0];
+
+    // BFS downward from founding root: parent's gen + 1 for each child.
+    const queue: string[] = [foundingRoot.id];
+    gen.set(foundingRoot.id, 1);
+    for (const sp of spousesOf.get(foundingRoot.id) || []) {
+      if (!gen.has(sp)) { gen.set(sp, 1); queue.push(sp); }
+    }
+
+    while (queue.length) {
+      const cur = queue.shift()!;
+      const curGen = gen.get(cur)!;
+      for (const k of childrenOf.get(cur) || []) {
+        if (gen.has(k)) continue;
+        gen.set(k, curGen + 1);
+        queue.push(k);
+        for (const sp of spousesOf.get(k) || []) {
+          if (!gen.has(sp)) { gen.set(sp, curGen + 1); queue.push(sp); }
+        }
+      }
+    }
+
+    // Fallback for disconnected persons: inherit via spouse, else default to 1.
+    for (const p of persons) {
+      if (gen.has(p.id)) continue;
+      const sp = [...(spousesOf.get(p.id) || [])].find((s) => gen.has(s));
+      gen.set(p.id, sp ? gen.get(sp)! : 1);
+    }
+
+    return gen;
   }, [persons, relationships]);
 
   // Compute branches
