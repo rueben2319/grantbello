@@ -246,6 +246,22 @@ export default function FamilyTree() {
     return persons.filter((p) => siblingIds.has(p.id));
   };
 
+  // Available generations (sorted) + highlighted set for filtering
+  const availableGenerations = useMemo(() => {
+    const s = new Set<number>();
+    for (const g of generationMap.values()) s.add(g);
+    return Array.from(s).sort((a, b) => a - b);
+  }, [generationMap]);
+
+  const highlightedPersonIds = useMemo(() => {
+    if (generationFilter === null) return null;
+    const ids = new Set<string>();
+    for (const [id, g] of generationMap) {
+      if (g === generationFilter) ids.add(id);
+    }
+    return ids;
+  }, [generationMap, generationFilter]);
+
   if (loadingFamily) {
     return (
       <div className="min-h-screen bg-background">
