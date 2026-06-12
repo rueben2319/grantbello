@@ -437,7 +437,6 @@ export default function FamilyTree() {
             highlightedPersonIds={highlightedPersonIds}
           />
         </div>
-        </div>
       </div>
 
       {/* Person profile dialog */}
