@@ -30,6 +30,7 @@ export default function FamilyTree() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
+  const [generationFilter, setGenerationFilter] = useState<number | null>(null);
 
   // Strict generation map: anchored to the founding root, propagated via
   // parent->child links downward. Spouses inherit their partner's generation.
