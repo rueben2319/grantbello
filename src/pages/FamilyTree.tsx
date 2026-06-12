@@ -378,6 +378,36 @@ export default function FamilyTree() {
         </div>
       )}
 
+      {/* Generation filter chips */}
+      {availableGenerations.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b px-2 py-2 sm:px-4">
+          <span className="text-xs font-medium text-muted-foreground shrink-0 mr-1">Filter:</span>
+          <button
+            onClick={() => setGenerationFilter(null)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              generationFilter === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            All
+          </button>
+          {availableGenerations.map((g) => (
+            <button
+              key={g}
+              onClick={() => setGenerationFilter(generationFilter === g ? null : g)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                generationFilter === g
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              Gen {g}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Tree + Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
