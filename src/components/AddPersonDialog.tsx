@@ -11,8 +11,8 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
-import type { Database } from "@/integrations/supabase/types";
+import type { Tables, Database } from "@/integrations/supabase/types";
+import { getErrorMessage } from "@/lib/utils";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 type RelKind = "parent" | "child" | "spouse";
@@ -57,7 +57,11 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
 
   const updateRelationship = (index: number, field: keyof RelationshipEntry, value: string) => {
     const updated = [...relationships];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === "type") {
+      updated[index] = { ...updated[index], type: value as RelKind };
+    } else {
+      updated[index] = { ...updated[index], personId: value };
+    }
     setRelationships(updated);
   };
 
@@ -115,8 +119,8 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
       reset();
       setOpen(false);
       onAdded?.();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 

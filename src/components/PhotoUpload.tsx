@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 interface PhotoUploadProps {
   currentUrl?: string | null;
@@ -33,7 +34,9 @@ export function PhotoUpload({ currentUrl, onUploaded, onRemoved, familyId }: Pho
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const nameExt = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : undefined;
+      const typeExt = file.type.split("/")[1]?.toLowerCase();
+      const ext = (nameExt && /^[a-z0-9]+$/.test(nameExt) ? nameExt : typeExt) || "jpg";
       const path = `${familyId}/${crypto.randomUUID()}.${ext}`;
 
       const { error } = await supabase.storage.from("photos").upload(path, file, { upsert: true });
@@ -43,8 +46,8 @@ export function PhotoUpload({ currentUrl, onUploaded, onRemoved, familyId }: Pho
       setPreview(urlData.publicUrl);
       onUploaded(urlData.publicUrl);
       toast.success("Photo uploaded!");
-    } catch (err: any) {
-      toast.error(err.message || "Upload failed");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Upload failed"));
     } finally {
       setUploading(false);
     }
@@ -66,6 +69,7 @@ export function PhotoUpload({ currentUrl, onUploaded, onRemoved, familyId }: Pho
             <button
               type="button"
               onClick={handleRemove}
+              aria-label="Remove photo"
               className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
             >
               <X className="h-3 w-3" />
