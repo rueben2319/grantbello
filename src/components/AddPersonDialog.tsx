@@ -58,7 +58,11 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
 
   const updateRelationship = (index: number, field: keyof RelationshipEntry, value: string) => {
     const updated = [...relationships];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === "type") {
+      updated[index] = { ...updated[index], type: value as RelKind };
+    } else {
+      updated[index] = { ...updated[index], personId: value };
+    }
     setRelationships(updated);
   };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ export default function Profile() {
   const { user, profile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [saving, setSaving] = useState(false);
+
+  // Sync local input with profile when it loads/changes
+  useEffect(() => {
+    setDisplayName(profile?.display_name ?? "");
+  }, [profile]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

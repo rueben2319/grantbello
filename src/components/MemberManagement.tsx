@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useFamilyMembers } from "@/hooks/useFamily";
@@ -28,9 +25,13 @@ interface MemberManagementProps {
   isAdmin: boolean;
 }
 
+type MemberRow = Tables<"family_roles"> & {
+  profiles: Pick<Tables<"profiles">, "display_name" | "avatar_url"> | null;
+};
+
 export function MemberManagement({ familyId, isAdmin }: MemberManagementProps) {
   const [open, setOpen] = useState(false);
-  const { data: members, refetch } = useFamilyMembers(familyId);
+  const { data: members } = useFamilyMembers(familyId);
   const { user } = useAuth();
 
   // Invite form
@@ -79,7 +80,9 @@ export function MemberManagement({ familyId, isAdmin }: MemberManagementProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon"><Users className="h-4 w-4" /></Button>
+        <Button variant="outline" size="icon" aria-label="Family members">
+          <Users className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

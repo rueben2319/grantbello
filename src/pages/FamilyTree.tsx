@@ -32,34 +32,88 @@ export default function FamilyTree() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
+  const [generationFilter, setGenerationFilter] = useState<number | null>(null);
 
-  // Compute generation level for each person
+  // Strict generation map: anchored to the founding root, propagated via
+  // parent->child links downward. Spouses inherit their partner's generation.
   const generationMap = useMemo(() => {
-    const memo = new Map<string, number>();
+    const gen = new Map<string, number>();
+    if (persons.length === 0) return gen;
 
-    const getGeneration = (personId: string): number => {
-      if (memo.has(personId)) return memo.get(personId)!;
+    const childrenOf = new Map<string, Set<string>>();
+    const parentsOf = new Map<string, Set<string>>();
+    const spousesOf = new Map<string, Set<string>>();
 
-      const parentIds = relationships
-        .filter((r) => r.relationship_type === "parent" && r.related_person_id === personId)
-        .map((r) => r.person_id);
-
-      if (parentIds.length === 0) {
-        memo.set(personId, 1);
-        return 1;
+    for (const r of relationships) {
+      if (r.relationship_type === "parent") {
+        if (!childrenOf.has(r.person_id)) childrenOf.set(r.person_id, new Set());
+        childrenOf.get(r.person_id)!.add(r.related_person_id);
+        if (!parentsOf.has(r.related_person_id)) parentsOf.set(r.related_person_id, new Set());
+        parentsOf.get(r.related_person_id)!.add(r.person_id);
+      } else if (r.relationship_type === "spouse") {
+        if (!spousesOf.has(r.person_id)) spousesOf.set(r.person_id, new Set());
+        spousesOf.get(r.person_id)!.add(r.related_person_id);
+        if (!spousesOf.has(r.related_person_id)) spousesOf.set(r.related_person_id, new Set());
+        spousesOf.get(r.related_person_id)!.add(r.person_id);
       }
-
-      const maxParentGen = Math.max(...parentIds.map(getGeneration));
-      const gen = maxParentGen + 1;
-      memo.set(personId, gen);
-      return gen;
-    };
-
-    for (const person of persons) {
-      getGeneration(person.id);
     }
 
-    return memo;
+    // Candidate roots: persons with no parents in the tree AND not married-in.
+    const rootCandidates = persons.filter(
+      (p) => !p.married_in && !(parentsOf.get(p.id)?.size)
+    );
+
+    const descendantCount = (id: string): number => {
+      const seen = new Set<string>();
+      const stack = [id];
+      while (stack.length) {
+        const cur = stack.pop()!;
+        for (const k of childrenOf.get(cur) || []) {
+          if (!seen.has(k)) { seen.add(k); stack.push(k); }
+        }
+      }
+      return seen.size;
+    };
+
+    const sortedRoots = [...rootCandidates].sort((a, b) => {
+      const dc = descendantCount(b.id) - descendantCount(a.id);
+      if (dc !== 0) return dc;
+      const ba = a.birth_date || "9999";
+      const bb = b.birth_date || "9999";
+      if (ba !== bb) return ba.localeCompare(bb);
+      return (a.created_at || "").localeCompare(b.created_at || "");
+    });
+
+    const foundingRoot = sortedRoots[0] || persons[0];
+
+    // BFS downward from founding root: parent's gen + 1 for each child.
+    const queue: string[] = [foundingRoot.id];
+    gen.set(foundingRoot.id, 1);
+    for (const sp of spousesOf.get(foundingRoot.id) || []) {
+      if (!gen.has(sp)) { gen.set(sp, 1); queue.push(sp); }
+    }
+
+    while (queue.length) {
+      const cur = queue.shift()!;
+      const curGen = gen.get(cur)!;
+      for (const k of childrenOf.get(cur) || []) {
+        if (gen.has(k)) continue;
+        gen.set(k, curGen + 1);
+        queue.push(k);
+        for (const sp of spousesOf.get(k) || []) {
+          if (!gen.has(sp)) { gen.set(sp, curGen + 1); queue.push(sp); }
+        }
+      }
+    }
+
+    // Fallback for disconnected persons: inherit via spouse, else default to 1.
+    for (const p of persons) {
+      if (gen.has(p.id)) continue;
+      const sp = [...(spousesOf.get(p.id) || [])].find((s) => gen.has(s));
+      gen.set(p.id, sp ? gen.get(sp)! : 1);
+    }
+
+    return gen;
   }, [persons, relationships]);
 
   // Compute branches
@@ -194,6 +248,22 @@ export default function FamilyTree() {
     return persons.filter((p) => siblingIds.has(p.id));
   }, [relationships, persons]);
 
+  // Available generations (sorted) + highlighted set for filtering
+  const availableGenerations = useMemo(() => {
+    const s = new Set<number>();
+    for (const g of generationMap.values()) s.add(g);
+    return Array.from(s).sort((a, b) => a - b);
+  }, [generationMap]);
+
+  const highlightedPersonIds = useMemo(() => {
+    if (generationFilter === null) return null;
+    const ids = new Set<string>();
+    for (const [id, g] of generationMap) {
+      if (g === generationFilter) ids.add(id);
+    }
+    return ids;
+  }, [generationMap, generationFilter]);
+
   if (loadingFamily) {
     return (
       <div className="min-h-screen bg-background">
@@ -244,10 +314,16 @@ export default function FamilyTree() {
             size="icon"
             onClick={() => setBranchesOpen(!branchesOpen)}
             title="Family branches"
+            aria-label="Toggle family branches panel"
           >
             <GitBranch className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}
+            aria-label="Search family members"
+          >
             <Search className="h-4 w-4" />
           </Button>
           {canEdit && <AddPersonDialog familyId={family.id} existingPersons={persons} />}
@@ -301,6 +377,36 @@ export default function FamilyTree() {
               No members found
             </div>
           )}
+        </div>
+      )}
+
+      {/* Generation filter chips */}
+      {availableGenerations.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b px-2 py-2 sm:px-4">
+          <span className="text-xs font-medium text-muted-foreground shrink-0 mr-1">Filter:</span>
+          <button
+            onClick={() => setGenerationFilter(null)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              generationFilter === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            All
+          </button>
+          {availableGenerations.map((g) => (
+            <button
+              key={g}
+              onClick={() => setGenerationFilter(generationFilter === g ? null : g)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                generationFilter === g
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              Gen {g}
+            </button>
+          ))}
         </div>
       )}
 

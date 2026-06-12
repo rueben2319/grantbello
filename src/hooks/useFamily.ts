@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 export function useMyFamilies() {
   const { user } = useAuth();
@@ -13,6 +13,7 @@ export function useMyFamilies() {
         .from("family_roles")
         .select("family_id, role")
         .eq("user_id", user!.id);
+      if (rolesError) throw rolesError;
 
       if (rolesError) throw new Error(rolesError.message);
 
@@ -23,6 +24,7 @@ export function useMyFamilies() {
         .from("families")
         .select("*")
         .in("id", familyIds);
+      if (familiesError) throw familiesError;
 
       if (familiesError) throw new Error(familiesError.message);
 
@@ -244,6 +246,7 @@ export function useDeleteRelationship() {
     },
     onSuccess: (familyId) => {
       queryClient.invalidateQueries({ queryKey: ["family-relationships", familyId] });
+      queryClient.invalidateQueries({ queryKey: ["family-persons", familyId] });
     },
   });
 }

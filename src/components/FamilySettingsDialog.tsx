@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,13 @@ export function FamilySettingsDialog({ family }: FamilySettingsDialogProps) {
   const [isPublic, setIsPublic] = useState(family.is_public);
   const updateFamily = useUpdateFamily();
 
+  // Re-sync local state if the family prop updates (e.g. after a successful save)
+  useEffect(() => {
+    setName(family.name);
+    setDescription(family.description || "");
+    setIsPublic(family.is_public);
+  }, [family]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -36,7 +43,9 @@ export function FamilySettingsDialog({ family }: FamilySettingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon"><Settings className="h-4 w-4" /></Button>
+        <Button variant="outline" size="icon" aria-label="Family settings">
+          <Settings className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
