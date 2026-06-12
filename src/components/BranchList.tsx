@@ -60,11 +60,20 @@ function BranchLabel({ branch }: { branch: Branch }) {
   );
 }
 
-function GenerationLabel({ gen }: { gen: number }) {
-  return <span className="text-xs text-muted-foreground whitespace-nowrap">Gen {gen}</span>;
+const ORDINALS = ["", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+function ordinal(n: number) {
+  return ORDINALS[n] || `${n}th`;
 }
 
 export function BranchList({ branches, onSelectBranch, onClose }: BranchListProps) {
+  // Group branches by generation
+  const grouped = branches.reduce<Map<number, Branch[]>>((acc, b) => {
+    if (!acc.has(b.generation)) acc.set(b.generation, []);
+    acc.get(b.generation)!.push(b);
+    return acc;
+  }, new Map());
+  const generations = Array.from(grouped.keys()).sort((a, b) => a - b);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -86,36 +95,48 @@ export function BranchList({ branches, onSelectBranch, onClose }: BranchListProp
             <p className="text-sm text-muted-foreground">No family branches yet</p>
           </div>
         ) : (
-          <div className="p-3 space-y-2">
-            {branches.map((branch) => (
-              <button
-                key={branch.id}
-                onClick={() => onSelectBranch(branch)}
-                className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent group"
-              >
-                {/* Avatars */}
-                <div className="flex shrink-0 -space-x-2 pt-0.5">
-                  <PersonAvatar person={branch.persons[0]} />
-                  {branch.persons[1] && <PersonAvatar person={branch.persons[1]} />}
-                </div>
-
-                {/* Text */}
-                <div className="min-w-0 flex-1">
-                  <BranchLabel branch={branch} />
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Baby className="h-3 w-3 shrink-0" />
-                    <span className="truncate">
-                      {branch.childCount} {branch.childCount === 1 ? "child" : "children"}
+          <div className="p-3 space-y-4">
+            {generations.map((gen) => {
+              const items = grouped.get(gen)!;
+              return (
+                <section key={gen} className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="flex items-center justify-center h-6 min-w-6 px-1.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold">
+                      {gen}
+                    </div>
+                    <h3 className="font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      {ordinal(gen)} Generation
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground/70">
+                      · {items.length} {items.length === 1 ? "family" : "families"}
                     </span>
                   </div>
-                </div>
-
-                {/* Generation Badge */}
-                <div className="flex items-center justify-center h-7 px-2 rounded-md bg-primary/10 text-primary shrink-0">
-                  <GenerationLabel gen={branch.generation} />
-                </div>
-              </button>
-            ))}
+                  <div className="space-y-1.5">
+                    {items.map((branch) => (
+                      <button
+                        key={branch.id}
+                        onClick={() => onSelectBranch(branch)}
+                        className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent group border border-transparent hover:border-border"
+                      >
+                        <div className="flex shrink-0 -space-x-2 pt-0.5">
+                          <PersonAvatar person={branch.persons[0]} />
+                          {branch.persons[1] && <PersonAvatar person={branch.persons[1]} />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <BranchLabel branch={branch} />
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                            <Baby className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                              {branch.childCount} {branch.childCount === 1 ? "child" : "children"}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         )}
       </ScrollArea>
