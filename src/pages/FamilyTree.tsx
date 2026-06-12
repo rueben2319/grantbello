@@ -30,6 +30,7 @@ export default function FamilyTree() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
+  const [generationFilter, setGenerationFilter] = useState<number | null>(null);
 
   // Strict generation map: anchored to the founding root, propagated via
   // parent->child links downward. Spouses inherit their partner's generation.
@@ -245,6 +246,22 @@ export default function FamilyTree() {
     return persons.filter((p) => siblingIds.has(p.id));
   };
 
+  // Available generations (sorted) + highlighted set for filtering
+  const availableGenerations = useMemo(() => {
+    const s = new Set<number>();
+    for (const g of generationMap.values()) s.add(g);
+    return Array.from(s).sort((a, b) => a - b);
+  }, [generationMap]);
+
+  const highlightedPersonIds = useMemo(() => {
+    if (generationFilter === null) return null;
+    const ids = new Set<string>();
+    for (const [id, g] of generationMap) {
+      if (g === generationFilter) ids.add(id);
+    }
+    return ids;
+  }, [generationMap, generationFilter]);
+
   if (loadingFamily) {
     return (
       <div className="min-h-screen bg-background">
@@ -361,6 +378,36 @@ export default function FamilyTree() {
         </div>
       )}
 
+      {/* Generation filter chips */}
+      {availableGenerations.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b px-2 py-2 sm:px-4">
+          <span className="text-xs font-medium text-muted-foreground shrink-0 mr-1">Filter:</span>
+          <button
+            onClick={() => setGenerationFilter(null)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              generationFilter === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            All
+          </button>
+          {availableGenerations.map((g) => (
+            <button
+              key={g}
+              onClick={() => setGenerationFilter(generationFilter === g ? null : g)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                generationFilter === g
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              Gen {g}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Tree + Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
@@ -387,6 +434,7 @@ export default function FamilyTree() {
             persons={persons}
             relationships={relationships}
             onPersonClick={setSelectedPerson}
+            highlightedPersonIds={highlightedPersonIds}
           />
         </div>
       </div>
