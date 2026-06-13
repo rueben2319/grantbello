@@ -142,8 +142,9 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
       }
     };
 
-    // Find roots (no parents)
-    const roots = persons.filter((p) => !childToParents.has(p.id));
+    // Find roots (no parents AND not married-in — married-in folks should
+    // appear as spouses of their blood-relative partner, not as a separate tree).
+    const roots = persons.filter((p) => !childToParents.has(p.id) && !p.married_in);
     if (roots.length === 0 && persons.length > 0) roots.push(persons[0]);
 
     const rootNodes: LayoutNode[] = [];
