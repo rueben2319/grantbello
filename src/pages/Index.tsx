@@ -3,13 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { FamilyCard } from "@/components/FamilyCard";
-import { usePublicFamilies } from "@/hooks/usePublicFamilies";
+import { usePublicFamilies } from "@/hooks/useFamily";
 import { TreePine, Globe, Shield, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Index() {
   const { user } = useAuth();
-  const { families, isLoading } = usePublicFamilies();
+  const { data: families, isLoading } = usePublicFamilies();
 
   return (
     <div className="min-h-screen bg-background">
