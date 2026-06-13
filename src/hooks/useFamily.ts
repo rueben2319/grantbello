@@ -13,8 +13,6 @@ export function useMyFamilies() {
         .from("family_roles")
         .select("family_id, role")
         .eq("user_id", user!.id);
-      if (rolesError) throw rolesError;
-
       if (rolesError) throw new Error(rolesError.message);
 
       if (!roles?.length) return [];
@@ -24,8 +22,6 @@ export function useMyFamilies() {
         .from("families")
         .select("*")
         .in("id", familyIds);
-      if (familiesError) throw familiesError;
-
       if (familiesError) throw new Error(familiesError.message);
 
       return (families || []).map((f) => ({
