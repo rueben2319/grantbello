@@ -1,78 +1,72 @@
-# Codebase Audit — Fix Plan
+# Family Timeline Feature
 
-The audit surfaced 26 issues across bugs, data integrity, type safety, a11y, and dead code. Below is a prioritized plan grouped by impact. P1/P2 are recommended; P3/P4/P5 are optional cleanups you can confirm or skip.
+A new chronological timeline page showing major family events (weddings, funerals, meetings, births, graduations, reunions, other) with photos, attendees linked to the tree, date, and location.
 
-## P1 — Critical fixes
+## User-facing scope
 
-1. **AuthContext race & stale profile** (`src/contexts/AuthContext.tsx`)
-   - Remove the redundant `getSession()` initialization path; rely on `onAuthStateChange` (which fires immediately with the current session).
-   - Keep the `setTimeout(…, 0)` deferral for `fetchProfile` to avoid the Supabase deadlock, but split into: listener sets `user`/`session`/`loading`, and a separate `useEffect([user])` fetches the profile. This eliminates the “user set, profile null” flicker.
+- New route `/family/:familyId/timeline` with a link from the family tree page header.
+- Vertical timeline ordered by event date (newest or oldest first, toggleable).
+- Each event card shows: event type icon, title, date, location, short description, photo gallery, and attendee avatars (clickable → jump back to that person on the tree).
+- Filters at top: event type (multi-select chip filter) and year range.
+- Admins & editors see "Add event", "Edit", and "Delete" controls. Viewers and public visitors only read.
+- Hybrid privacy: public visitors see event titles, types, and the year only. Full dates, location, descriptions, photos, and attendee list require login (matches existing privacy model).
 
-2. **Profile page input never syncs** (`src/pages/Profile.tsx`)
-   - Add `useEffect(() => setDisplayName(profile?.display_name ?? ""), [profile])` so the input populates once the profile loads.
+## Data model
 
-3. **MemberManagement invite form is a stub** (`src/components/MemberManagement.tsx`)
-   - Since there is no working invite backend, remove the misleading invite form, the unused `inviteEmail` / `inviteRole` / `inviting` state, and the “invite” toast. Keep role management (promote/demote/remove) which actually works.
-   - (If you want a real invite flow instead, say so and I’ll plan that as a separate feature.)
+New tables in `public`:
 
-4. **Trigger crash if `created_by` is NULL** (migration)
-   - Add a new migration that updates `public.handle_new_family()` to no-op when `NEW.created_by IS NULL`, preventing a NOT NULL violation on `family_roles.user_id`.
+- `events`
+  - `family_id` (fk families, cascade)
+  - `title`
+  - `event_type` (enum: wedding, funeral, meeting, birth, graduation, reunion, other)
+  - `event_date` (date)
+  - `location` (text, optional)
+  - `description` (text, optional)
+  - `created_by` (uuid)
 
-## P2 — Error handling & data integrity
+- `event_attendees`
+  - `event_id` (fk events, cascade)
+  - `person_id` (fk persons, cascade)
+  - unique(event_id, person_id)
 
-5. **Surface Supabase errors in hooks** (`src/hooks/useFamily.ts`)
-   - In every query hook (`useFamily`, `useFamilyPersons`, `useFamilyRelationships`, `useFamilyMembers`, `useUserFamilyRole`, `usePublicFamilies`, `useMyFamilies`), destructure `{ data, error }` and `throw error` so React Query can flag failures instead of silently returning empty.
+- `event_photos`
+  - `event_id` (fk events, cascade)
+  - `photo_url`
+  - `caption` (optional)
+  - `sort_order` (int)
 
-6. **Cycle guard in generation computation** (`src/pages/FamilyTree.tsx`)
-   - Add a `visiting` Set passed through `getGeneration`; if a node is revisited, return its current depth instead of recursing (prevents stack overflow on cyclic relationship data).
+Reuse existing `photos` storage bucket under prefix `events/{family_id}/{event_id}/`.
 
-7. **Photo upload extension fallback** (`src/components/PhotoUpload.tsx`)
-   - Derive extension safely: `const ext = file.name.split(".").pop()?.toLowerCase() || (file.type.split("/")[1] ?? "jpg")`.
+## Access rules (RLS)
 
-8. **Unique constraint on relationships** (new migration)
-   - `CREATE UNIQUE INDEX IF NOT EXISTS relationships_unique ON public.relationships (person_id, related_person_id, relationship_type);` to prevent duplicate edges.
+- Read events / attendees / photos: anyone (public) for families where `is_public=true`, plus family members. Sensitive fields are masked client-side based on auth state per the hybrid privacy memory.
+- Insert / update / delete events, attendees, photos: only admins & editors of that family (`is_family_editor_or_admin`).
+- Standard GRANTs: `SELECT` to `anon` and `authenticated`; full CRUD to `authenticated`; `ALL` to `service_role`.
 
-9. **Invalidate persons cache on relationship delete** (`src/hooks/useFamily.ts`)
-   - `useDeleteRelationship` `onSuccess` should also invalidate `["family-persons", familyId]` so open cards refresh.
+## Code structure
 
-## P3 — Type safety
+- `src/hooks/useEvents.ts` — `useFamilyEvents`, `useEvent`, `useCreateEvent`, `useUpdateEvent`, `useDeleteEvent`, `useEventAttendees`, `useEventPhotos`, mutations for attendees/photos.
+- `src/pages/FamilyTimeline.tsx` — page shell: header, filters, timeline list, empty state, skeleton loaders.
+- `src/components/timeline/TimelineEventCard.tsx` — single event card with privacy-aware rendering.
+- `src/components/timeline/EventDialog.tsx` — create/edit dialog (zod validation: title 1–120, location ≤200, description ≤2000, date required, at least 0 attendees, type required).
+- `src/components/timeline/AttendeePicker.tsx` — multi-select from family persons with search and avatar chips.
+- `src/components/timeline/EventPhotoUploader.tsx` — reuses existing `PhotoUpload` patterns for multi-photo upload to the `photos` bucket.
+- `src/components/timeline/EventTypeBadge.tsx` — icon + color per event type using semantic tokens.
+- Add route in `src/App.tsx`; add a "Timeline" button on `FamilyTree.tsx` header.
+- Clicking an attendee navigates to `/family/:id?focus=:personId` and the tree centers on that person (extend existing focus param handling if missing).
 
-10. **Replace `catch (err: any)`** across `AddPersonDialog`, `EditPersonDialog`, `CreateFamilyDialog`, `FamilySettingsDialog`, `MemberManagement`, `PhotoUpload`
-    - Use a small helper `getErrorMessage(err: unknown): string` (in `src/lib/utils.ts`) that handles `Error`, Supabase `PostgrestError`, and falls back to `String(err)`.
+## Visual style
 
-11. **Type the member row in MemberManagement** (`src/components/MemberManagement.tsx`)
-    - Replace `m: any` with a proper type from `Tables<"family_roles"> & { profiles: Tables<"profiles"> | null }`.
+- Vertical spine with alternating left/right cards on desktop, single column on mobile.
+- Event type colors derived from existing orange/teal palette via new semantic tokens (`--event-wedding`, `--event-funeral`, etc.) added to `index.css` and `tailwind.config.ts`.
+- Space Grotesk for event titles, Inter for body. Photo gallery uses an aspect-ratio grid with lightbox on click.
 
-12. **EditPersonDialog `type: v as any`**
-    - Cast to the relationship type union (`"parent" | "child" | "spouse"`).
+## Out of scope (can follow later)
 
-13. **Misc**: dedupe the double import in `AddPersonDialog`, add `useEffect([family])` reset in `FamilySettingsDialog`.
+- Comments / reactions on events.
+- Recurring events.
+- Calendar/month view.
+- Video attachments.
+- Notifications when a new event is added.
 
-## P4 — Accessibility
-
-14. Add `aria-label` to all icon-only buttons:
-    - `FamilyTree.tsx` toolbar (Search, Branches, Settings, Members)
-    - `BranchList.tsx` close button
-    - `PhotoUpload.tsx` remove button
-    - `PersonProfileCard.tsx` relationship chips
-
-15. **Auth.tsx**: only enforce `minLength={6}` on the sign-up form, not sign-in.
-
-## P5 — Dead code cleanup
-
-16. Delete unused `src/components/NavLink.tsx`.
-17. Consolidate the duplicated `src/hooks/use-toast.ts` / `src/components/ui/use-toast.ts` (keep the ui version, re-export from hooks for compatibility).
-18. Leave `src/test/example.test.ts` alone (harmless placeholder) unless you want it removed.
-
-## What I will NOT change
-
-- The tree visualization, branch logic, dark mode, or any feature behavior beyond the bug fixes above.
-- Database schema beyond the two small migrations in items 4 and 8.
-- Auth flow logic (only the initialization race and Profile sync).
-
-## Confirmation needed
-
-- **Item 3**: remove the invite UI entirely, or do you want a real email-invite flow implemented instead?
-- **Items P4 / P5**: include them in this pass, or defer?
-
-Reply with what to include and I’ll implement.
+Confirm and I'll build it.
