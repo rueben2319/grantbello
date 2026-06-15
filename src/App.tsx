@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
 import FamilyTree from "./pages/FamilyTree";
+import FamilyTimeline from "./pages/FamilyTimeline";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/browse" element={<Browse />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/family/:familyId" element={<FamilyTree />} />
+                <Route path="/family/:familyId/timeline" element={<FamilyTimeline />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

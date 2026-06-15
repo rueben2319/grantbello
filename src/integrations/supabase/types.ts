@@ -14,6 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_attendees: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          person_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          person_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          event_id: string
+          id: string
+          photo_url: string
+          sort_order: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          photo_url: string
+          sort_order?: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          photo_url?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_photos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          family_id: string
+          id: string
+          location: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          family_id: string
+          id?: string
+          location?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          family_id?: string
+          id?: string
+          location?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       families: {
         Row: {
           created_at: string
@@ -255,6 +373,14 @@ export type Database = {
       }
     }
     Enums: {
+      event_type:
+        | "wedding"
+        | "funeral"
+        | "meeting"
+        | "birth"
+        | "graduation"
+        | "reunion"
+        | "other"
       family_role: "admin" | "editor" | "viewer"
       gender_type: "male" | "female" | "other"
       relationship_type: "parent" | "spouse"
@@ -385,6 +511,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      event_type: [
+        "wedding",
+        "funeral",
+        "meeting",
+        "birth",
+        "graduation",
+        "reunion",
+        "other",
+      ],
       family_role: ["admin", "editor", "viewer"],
       gender_type: ["male", "female", "other"],
       relationship_type: ["parent", "spouse"],

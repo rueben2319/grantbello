@@ -13,7 +13,8 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { TreePine, Search, X, GitBranch } from "lucide-react";
+import { TreePine, Search, X, GitBranch, Calendar } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -317,6 +318,17 @@ export default function FamilyTree() {
             aria-label="Toggle family branches panel"
           >
             <GitBranch className="h-4 w-4" />
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            title="Family timeline"
+            aria-label="Open family timeline"
+          >
+            <Link to={`/family/${familyId}/timeline`}>
+              <Calendar className="h-4 w-4" />
+            </Link>
           </Button>
           <Button
             variant="ghost"
