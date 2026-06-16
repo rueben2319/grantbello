@@ -166,19 +166,35 @@ export default function FamilyTimeline() {
             )}
           </div>
         ) : (
-          <div className="relative space-y-5 md:pl-10">
-            {/* spine */}
-            <span className="absolute left-3 top-2 bottom-2 hidden w-px bg-border md:block" aria-hidden />
-            {filteredEvents.map((ev) => (
-              <TimelineEventCard
-                key={ev.id}
-                event={ev}
-                persons={persons}
-                familyId={family.id}
-                canEdit={canEdit}
-                isAuthenticated={!!user}
-              />
-            ))}
+          <div className="relative space-y-6 pl-8 md:pl-0">
+            <span
+              className="absolute left-3 top-2 bottom-2 w-px bg-border md:left-1/2 md:-translate-x-1/2"
+              aria-hidden
+            />
+            {filteredEvents.map((ev, i) => {
+              const side = i % 2 === 0 ? "left" : "right";
+              return (
+                <div key={ev.id} className="relative md:grid md:grid-cols-2 md:gap-8">
+                  <span
+                    className="absolute left-3 top-5 hidden h-3 w-3 -translate-x-1/2 rounded-full border-2 border-background bg-primary md:left-1/2 md:block"
+                    aria-hidden
+                  />
+                  <div
+                    className={cn(
+                      side === "left" ? "md:col-start-1 md:pr-6" : "md:col-start-2 md:pl-6",
+                    )}
+                  >
+                    <TimelineEventCard
+                      event={ev}
+                      persons={persons}
+                      familyId={family.id}
+                      canEdit={canEdit}
+                      isAuthenticated={!!user}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
