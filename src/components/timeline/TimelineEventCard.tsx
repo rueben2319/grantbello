@@ -6,7 +6,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { EventTypeBadge, eventTypeMeta } from "./EventTypeBadge";
+import { EventTypeBadge } from "./EventTypeBadge";
 import { EventDialog } from "./EventDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import type { EventType, TimelineEvent } from "@/hooks/useEvents";
