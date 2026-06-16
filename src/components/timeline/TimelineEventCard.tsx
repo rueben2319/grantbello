@@ -52,12 +52,7 @@ export function TimelineEventCard({ event, persons, familyId, canEdit, isAuthent
 
   return (
     <article className="relative rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md">
-      {/* spine dot */}
-      <span className="absolute -left-[34px] top-6 hidden h-6 w-6 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground md:flex">
-        <Icon className="h-3 w-3" />
-      </span>
-
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
