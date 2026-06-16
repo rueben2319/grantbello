@@ -37,7 +37,7 @@ export function TimelineEventCard({ event, persons, familyId, canEdit, isAuthent
   const [lightbox, setLightbox] = useState<string | null>(null);
   const deleteEvent = useDeleteEvent();
 
-  const { Icon } = eventTypeMeta(event.event_type as EventType);
+  // event type meta handled inside EventTypeBadge
   const attendees = persons.filter((p) => event.attendees.some((a) => a.person_id === p.id));
   const year = event.event_date.slice(0, 4);
 
