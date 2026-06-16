@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useFamily, useFamilyPersons, useFamilyRelationships, useUserFamilyRole } from "@/hooks/useFamily";
 import { useAuth } from "@/contexts/AuthContext";
 import { TreeVisualization, type TreeVisualizationHandle } from "@/components/TreeVisualization";
@@ -21,6 +21,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function FamilyTree() {
   const { familyId } = useParams<{ familyId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { data: family, isLoading: loadingFamily } = useFamily(familyId);
@@ -34,6 +35,22 @@ export default function FamilyTree() {
   const [searchQuery, setSearchQuery] = useState("");
   const [branchesOpen, setBranchesOpen] = useState(false);
   const [generationFilter, setGenerationFilter] = useState<number | null>(null);
+
+  // Handle ?focus=<personId> deep links (e.g. from timeline attendee badges)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (!focusId || persons.length === 0) return;
+    const person = persons.find((p) => p.id === focusId);
+    if (!person) return;
+    treeRef.current?.focusPerson(person.id);
+    const t = setTimeout(() => setSelectedPerson(person), 650);
+    // clear the param so re-opens don't re-trigger
+    const next = new URLSearchParams(searchParams);
+    next.delete("focus");
+    setSearchParams(next, { replace: true });
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persons, searchParams.get("focus")]);
 
   // Strict generation map: anchored to the founding root, propagated via
   // parent->child links downward. Spouses inherit their partner's generation.

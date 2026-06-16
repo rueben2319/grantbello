@@ -123,12 +123,19 @@ export function TimelineEventCard({ event, persons, familyId, canEdit, isAuthent
                 <Link
                   key={p.id}
                   to={`/family/${familyId}?focus=${p.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent hover:bg-accent/20 transition-colors"
+                  title={`View ${p.first_name} ${p.last_name ?? ""}'s profile`}
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 py-0.5 pl-0.5 pr-2.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 hover:border-accent/60"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold">
-                    {p.first_name.charAt(0)}
+                  <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-accent/20 text-[10px] font-bold ring-1 ring-accent/30">
+                    {p.photo_url ? (
+                      <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      p.first_name.charAt(0)
+                    )}
                   </span>
-                  {p.first_name} {p.last_name ?? ""}
+                  <span className="max-w-[10rem] truncate">
+                    {p.first_name} {p.last_name ?? ""}
+                  </span>
                 </Link>
               ))}
             </div>
