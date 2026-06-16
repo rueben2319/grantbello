@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useFamily, useFamilyPersons, useFamilyRelationships, useUserFamilyRole } from "@/hooks/useFamily";
 import { useAuth } from "@/contexts/AuthContext";
 import { TreeVisualization, type TreeVisualizationHandle } from "@/components/TreeVisualization";
