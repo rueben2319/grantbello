@@ -114,34 +114,62 @@ export function TimelineEventCard({ event, persons, familyId, canEdit, isAuthent
           </div>
         )}
 
-        {isAuthenticated && attendees.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <Users className="h-3.5 w-3.5" /> {attendees.length} attending
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {attendees.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/family/${familyId}?focus=${p.id}`}
-                  title={`View ${p.first_name} ${p.last_name ?? ""}'s profile`}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 py-0.5 pl-0.5 pr-2.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 hover:border-accent/60"
-                >
-                  <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-accent/20 text-[10px] font-bold ring-1 ring-accent/30">
-                    {p.photo_url ? (
-                      <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      p.first_name.charAt(0)
-                    )}
-                  </span>
-                  <span className="max-w-[10rem] truncate">
-                    {p.first_name} {p.last_name ?? ""}
-                  </span>
-                </Link>
-              ))}
+        {isAuthenticated && attendees.length > 0 && (() => {
+          const MAX_VISIBLE = 5;
+          const visible = attendees.slice(0, MAX_VISIBLE);
+          const overflow = attendees.slice(MAX_VISIBLE);
+          const renderBadge = (p: typeof attendees[number]) => (
+            <Link
+              key={p.id}
+              to={`/family/${familyId}?focus=${p.id}`}
+              title={`View ${p.first_name} ${p.last_name ?? ""}'s profile`}
+              className="group inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 py-0.5 pl-0.5 pr-2.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 hover:border-accent/60"
+            >
+              <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-accent/20 text-[10px] font-bold ring-1 ring-accent/30">
+                {p.photo_url ? (
+                  <img src={p.photo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  p.first_name.charAt(0)
+                )}
+              </span>
+              <span className="max-w-[10rem] truncate">
+                {p.first_name} {p.last_name ?? ""}
+              </span>
+            </Link>
+          );
+          return (
+            <div className="mt-4">
+              <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <Users className="h-3.5 w-3.5" /> {attendees.length} attending
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {visible.map(renderBadge)}
+                {overflow.length > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent/10 hover:text-accent"
+                        aria-label={`Show ${overflow.length} more attendees`}
+                      >
+                        +{overflow.length} more
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-64 p-2">
+                      <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">
+                        {overflow.length} more attending
+                      </p>
+                      <div className="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto">
+                        {overflow.map(renderBadge)}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+
 
         {!isAuthenticated && (
           <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
