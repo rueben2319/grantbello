@@ -36,6 +36,22 @@ export default function FamilyTree() {
   const [branchesOpen, setBranchesOpen] = useState(false);
   const [generationFilter, setGenerationFilter] = useState<number | null>(null);
 
+  // Handle ?focus=<personId> deep links (e.g. from timeline attendee badges)
+  useEffect(() => {
+    const focusId = searchParams.get("focus");
+    if (!focusId || persons.length === 0) return;
+    const person = persons.find((p) => p.id === focusId);
+    if (!person) return;
+    treeRef.current?.focusPerson(person.id);
+    const t = setTimeout(() => setSelectedPerson(person), 650);
+    // clear the param so re-opens don't re-trigger
+    const next = new URLSearchParams(searchParams);
+    next.delete("focus");
+    setSearchParams(next, { replace: true });
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persons, searchParams.get("focus")]);
+
   // Strict generation map: anchored to the founding root, propagated via
   // parent->child links downward. Spouses inherit their partner's generation.
   const generationMap = useMemo(() => {
