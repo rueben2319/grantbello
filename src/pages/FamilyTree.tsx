@@ -21,6 +21,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function FamilyTree() {
   const { familyId } = useParams<{ familyId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { data: family, isLoading: loadingFamily } = useFamily(familyId);
