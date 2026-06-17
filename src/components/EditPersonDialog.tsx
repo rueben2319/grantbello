@@ -265,20 +265,17 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2 min-w-0">
                   <Label className="text-xs">Person</Label>
-                  <Select value={rel.personId} onValueChange={(v) => {
-                    const updated = [...newRels];
-                    updated[index] = { ...updated[index], personId: v };
-                    setNewRels(updated);
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                    <SelectContent>
-                      {otherPersons.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <PersonCombobox
+                    persons={otherPersons}
+                    value={rel.personId}
+                    onChange={(v) => {
+                      const updated = [...newRels];
+                      updated[index] = { ...updated[index], personId: v };
+                      setNewRels(updated);
+                    }}
+                  />
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => setNewRels(newRels.filter((_, i) => i !== index))}>
                   <X className="h-4 w-4" />
