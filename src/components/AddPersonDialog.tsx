@@ -12,6 +12,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
+import { PersonCombobox } from "@/components/PersonCombobox";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
