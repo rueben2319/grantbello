@@ -217,6 +217,20 @@ export function useCreateRelationship() {
   });
 }
 
+export function useUpdateRelationship() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...values }: { id: string } & Partial<TablesInsert<"relationships">>) => {
+      const { data, error } = await supabase.from("relationships").update(values).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["family-relationships", data.family_id] });
+    },
+  });
+}
+
 export function useDeletePerson() {
   const queryClient = useQueryClient();
   return useMutation({

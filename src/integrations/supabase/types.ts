@@ -302,6 +302,7 @@ export type Database = {
           person_id: string
           related_person_id: string
           relationship_type: Database["public"]["Enums"]["relationship_type"]
+          status: Database["public"]["Enums"]["spouse_status"]
         }
         Insert: {
           created_at?: string
@@ -311,6 +312,7 @@ export type Database = {
           person_id: string
           related_person_id: string
           relationship_type: Database["public"]["Enums"]["relationship_type"]
+          status?: Database["public"]["Enums"]["spouse_status"]
         }
         Update: {
           created_at?: string
@@ -320,6 +322,7 @@ export type Database = {
           person_id?: string
           related_person_id?: string
           relationship_type?: Database["public"]["Enums"]["relationship_type"]
+          status?: Database["public"]["Enums"]["spouse_status"]
         }
         Relationships: [
           {
@@ -387,6 +390,7 @@ export type Database = {
       family_role: "admin" | "editor" | "viewer"
       gender_type: "male" | "female" | "other"
       relationship_type: "parent" | "spouse"
+      spouse_status: "active" | "divorced" | "widowed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -526,6 +530,7 @@ export const Constants = {
       family_role: ["admin", "editor", "viewer"],
       gender_type: ["male", "female", "other"],
       relationship_type: ["parent", "spouse"],
+      spouse_status: ["active", "divorced", "widowed"],
     },
   },
 } as const

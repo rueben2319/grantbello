@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
+import { PersonCombobox } from "@/components/PersonCombobox";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
+import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
@@ -84,6 +86,15 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
         married_in: marriedIn,
       });
 
+      // Track parent person IDs whose active spouses we should also link as parents.
+      const parentIdsForChild = new Map<string, string[]>(); // childId -> [parentIds added directly]
+
+      const addParentLink = (parentId: string, childId: string) => {
+        const arr = parentIdsForChild.get(childId) ?? [];
+        if (!arr.includes(parentId)) arr.push(parentId);
+        parentIdsForChild.set(childId, arr);
+      };
+
       for (const rel of relationships) {
         if (!rel.personId) continue;
 
@@ -95,6 +106,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             related_person_id: person.id,
             relationship_type: "parent",
           });
+          addParentLink(rel.personId, person.id);
         } else if (rel.type === "parent") {
           // new person is parent of selected
           await createRelationship.mutateAsync({
@@ -103,6 +115,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             related_person_id: rel.personId,
             relationship_type: "parent",
           });
+          addParentLink(person.id, rel.personId);
         } else if (rel.type === "spouse") {
           await createRelationship.mutateAsync({
             family_id: familyId,
@@ -113,6 +126,60 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
           });
         }
       }
+
+      // Auto-link the active spouse of each new parent as a co-parent.
+      if (parentIdsForChild.size > 0) {
+        const parentIds = Array.from(new Set(Array.from(parentIdsForChild.values()).flat()));
+        const { data: spouseRows } = await supabase
+          .from("relationships")
+          .select("person_id, related_person_id, status")
+          .eq("family_id", familyId)
+          .eq("relationship_type", "spouse")
+          .eq("status", "active")
+          .or(`person_id.in.(${parentIds.join(",")}),related_person_id.in.(${parentIds.join(",")})`);
+
+        const activeSpousesOf = new Map<string, string[]>();
+        (spouseRows ?? []).forEach((r: { person_id: string; related_person_id: string }) => {
+          const a = r.person_id as string;
+          const b = r.related_person_id as string;
+          [[a, b], [b, a]].forEach(([x, y]) => {
+            const arr = activeSpousesOf.get(x) ?? [];
+            if (!arr.includes(y)) arr.push(y);
+            activeSpousesOf.set(x, arr);
+          });
+        });
+
+        // Existing parent links so we don't duplicate
+        const childIds = Array.from(parentIdsForChild.keys());
+        const { data: existingParents } = await supabase
+          .from("relationships")
+          .select("person_id, related_person_id")
+          .eq("family_id", familyId)
+          .eq("relationship_type", "parent")
+          .in("related_person_id", childIds);
+
+        const hasParentLink = (parentId: string, childId: string) =>
+          (existingParents ?? []).some(
+            (r: { person_id: string; related_person_id: string }) => r.person_id === parentId && r.related_person_id === childId
+          );
+
+        for (const [childId, directParents] of parentIdsForChild.entries()) {
+          for (const directParent of directParents) {
+            const spouses = activeSpousesOf.get(directParent) ?? [];
+            for (const spouseId of spouses) {
+              if (directParents.includes(spouseId)) continue; // already added directly
+              if (hasParentLink(spouseId, childId)) continue;
+              await createRelationship.mutateAsync({
+                family_id: familyId,
+                person_id: spouseId,
+                related_person_id: childId,
+                relationship_type: "parent",
+              });
+            }
+          }
+        }
+      }
+
 
       toast.success(`${firstName} added!`);
       reset();
