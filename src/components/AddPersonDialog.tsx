@@ -226,16 +226,13 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 space-y-2 min-w-0">
                     <Label className="text-xs">Person</Label>
-                    <Select value={rel.personId} onValueChange={(v) => updateRelationship(index, "personId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                      <SelectContent>
-                        {existingPersons.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PersonCombobox
+                      persons={existingPersons}
+                      value={rel.personId}
+                      onChange={(v) => updateRelationship(index, "personId", v)}
+                    />
                   </div>
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)}>
                     <X className="h-4 w-4" />
