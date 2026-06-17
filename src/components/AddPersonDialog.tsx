@@ -142,7 +142,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
           .or(`person_id.in.(${parentIds.join(",")}),related_person_id.in.(${parentIds.join(",")})`);
 
         const activeSpousesOf = new Map<string, string[]>();
-        (spouseRows ?? []).forEach((r) => {
+        (spouseRows ?? []).forEach((r: { person_id: string; related_person_id: string }) => {
           const a = r.person_id as string;
           const b = r.related_person_id as string;
           [[a, b], [b, a]].forEach(([x, y]) => {
