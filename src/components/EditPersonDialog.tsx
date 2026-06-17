@@ -48,6 +48,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const updatePerson = useUpdatePerson();
   const createRelationship = useCreateRelationship();
   const deleteRelationship = useDeleteRelationship();
+  const updateRelationship = useUpdateRelationship();
 
   useEffect(() => {
     setFirstName(person.first_name);
