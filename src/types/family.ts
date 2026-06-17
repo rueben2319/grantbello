@@ -6,4 +6,5 @@ export type Branch = {
   childCount: number;
   primaryPersonId: string;
   generation: number;
+  isDivorced?: boolean;
 };

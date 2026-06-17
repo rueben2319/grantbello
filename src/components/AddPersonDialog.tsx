@@ -21,6 +21,7 @@ type RelKind = "parent" | "child" | "spouse";
 interface RelationshipEntry {
   personId: string;
   type: RelKind;
+  isDivorced?: boolean;
 }
 
 interface AddPersonDialogProps {
@@ -56,13 +57,9 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
     setRelationships([...relationships, { personId: "", type: "parent" }]);
   };
 
-  const updateRelationship = (index: number, field: keyof RelationshipEntry, value: string) => {
+  const updateRelationship = (index: number, field: keyof RelationshipEntry, value: string | boolean) => {
     const updated = [...relationships];
-    if (field === "type") {
-      updated[index] = { ...updated[index], type: value as RelKind };
-    } else {
-      updated[index] = { ...updated[index], personId: value };
-    }
+    updated[index] = { ...updated[index], [field]: value };
     setRelationships(updated);
   };
 
@@ -112,6 +109,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
             person_id: person.id,
             related_person_id: rel.personId,
             relationship_type: "spouse",
+            is_divorced: !!rel.isDivorced,
           });
         }
       }
@@ -210,32 +208,46 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
                 </Button>
               </div>
               {relationships.map((rel, index) => (
-                <div key={index} className="flex items-end gap-2 rounded-md border p-3">
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-xs">This person is...</Label>
-                    <Select value={rel.type} onValueChange={(v) => updateRelationship(index, "type", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="parent">Parent of</SelectItem>
-                        <SelectItem value="child">Child of</SelectItem>
-                        <SelectItem value="spouse">Spouse of</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div key={index} className="flex flex-col gap-2 rounded-md border p-3">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-xs">This person is...</Label>
+                      <Select value={rel.type} onValueChange={(v) => updateRelationship(index, "type", v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="parent">Parent of</SelectItem>
+                          <SelectItem value="child">Child of</SelectItem>
+                          <SelectItem value="spouse">Spouse of</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-xs">Person</Label>
+                      <Select value={rel.personId} onValueChange={(v) => updateRelationship(index, "personId", v)}>
+                        <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
+                        <SelectContent>
+                          {existingPersons.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-xs">Person</Label>
-                    <Select value={rel.personId} onValueChange={(v) => updateRelationship(index, "personId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                      <SelectContent>
-                        {existingPersons.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {rel.type === "spouse" && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Checkbox
+                        id={`divorced-add-${index}`}
+                        checked={rel.isDivorced || false}
+                        onCheckedChange={(checked) => updateRelationship(index, "isDivorced", checked === true)}
+                      />
+                      <Label htmlFor={`divorced-add-${index}`} className="text-xs text-muted-foreground">
+                        Divorced / Separated
+                      </Label>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

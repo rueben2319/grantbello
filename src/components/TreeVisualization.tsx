@@ -7,6 +7,8 @@ interface CoupleNode {
   id: string;
   persons: Tables<"persons">[];
   primaryIndex: number; // which person in the couple is the blood-relative (0 or 1)
+  isDivorced: boolean;
+  isWidowed: boolean;
   children: LayoutNode[];
 }
 
@@ -45,7 +47,14 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
     // Build parent-child and spouse maps
     const parentToChildren = new Map<string, Set<string>>();
     const childToParents = new Map<string, Set<string>>();
-    const spouseMap = new Map<string, Set<string>>();
+
+    interface SpouseConnection {
+      spouseId: string;
+      relationshipId: string;
+      isDivorced: boolean;
+      isWidowed: boolean;
+    }
+    const spouseMap = new Map<string, Set<SpouseConnection>>();
 
     relationships.forEach((r) => {
       if (r.relationship_type === "parent") {
@@ -54,10 +63,28 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         if (!childToParents.has(r.related_person_id)) childToParents.set(r.related_person_id, new Set());
         childToParents.get(r.related_person_id)!.add(r.person_id);
       } else if (r.relationship_type === "spouse") {
+        const p1 = personMap.get(r.person_id);
+        const p2 = personMap.get(r.related_person_id);
+        if (!p1 || !p2) return;
+
+        const isDivorced = !!r.is_divorced;
+        const isWidowed = !!(p1.death_date || p2.death_date);
+
         if (!spouseMap.has(r.person_id)) spouseMap.set(r.person_id, new Set());
-        spouseMap.get(r.person_id)!.add(r.related_person_id);
+        spouseMap.get(r.person_id)!.add({
+          spouseId: r.related_person_id,
+          relationshipId: r.id,
+          isDivorced,
+          isWidowed,
+        });
+
         if (!spouseMap.has(r.related_person_id)) spouseMap.set(r.related_person_id, new Set());
-        spouseMap.get(r.related_person_id)!.add(r.person_id);
+        spouseMap.get(r.related_person_id)!.add({
+          spouseId: r.person_id,
+          relationshipId: r.id,
+          isDivorced,
+          isWidowed,
+        });
       }
     });
 
@@ -68,96 +95,115 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
       return [...aKids].filter((k) => bKids.has(k));
     };
 
-    // Group into couples or singles, building a tree
-    const visited = new Set<string>();
+    const sortByBirthDate = (a: string, b: string) => {
+      const pa = personMap.get(a);
+      const pb = personMap.get(b);
+      const da = pa?.birth_date ? new Date(pa.birth_date).getTime() : Infinity;
+      const db = pb?.birth_date ? new Date(pb.birth_date).getTime() : Infinity;
+      return da - db;
+    };
 
-    const buildNode = (personId: string): LayoutNode | null => {
-      if (visited.has(personId)) return null;
+    const globalVisitedCouples = new Set<string>();
+    const globallyVisitedPeopleIds = new Set<string>();
+
+    const buildSubtrees = (personId: string, visitedPeople: Set<string>): LayoutNode[] => {
+      if (visitedPeople.has(personId)) return [];
+      const newVisited = new Set(visitedPeople);
+      newVisited.add(personId);
+
       const person = personMap.get(personId);
-      if (!person) return null;
+      if (!person) return [];
 
-      // Check if this person has a spouse we haven't visited
-      const spouses = spouseMap.get(personId) || new Set();
-      let coupleSpouseId: string | null = null;
-      for (const sid of spouses) {
-        if (!visited.has(sid) && personMap.has(sid)) {
-          coupleSpouseId = sid;
-          break;
-        }
-      }
+      globallyVisitedPeopleIds.add(personId);
 
-      if (coupleSpouseId) {
-        visited.add(personId);
-        visited.add(coupleSpouseId);
-        const spouse = personMap.get(coupleSpouseId)!;
+      const spouses = Array.from(spouseMap.get(personId) || []);
 
-        // Determine who is the "primary" (blood-relative in the lineage).
-        // The person who was passed into buildNode is the one discovered via
-        // a parent→child link, so they are the blood relative (index 0).
-        const primaryIndex = 0;
+      if (spouses.length === 0) {
+        // Single parent or single person
+        const childIds = parentToChildren.get(personId) || new Set();
+        const sortedChildIds = [...childIds].sort(sortByBirthDate);
+        const children = sortedChildIds.flatMap((cid) => buildSubtrees(cid, newVisited));
 
-        // Shared children come from between the couple
-        const sharedChildIds = getSharedChildren(personId, coupleSpouseId);
-        // Exclusive children of each
-        const p1Kids = [...(parentToChildren.get(personId) || [])].filter((k) => !sharedChildIds.includes(k));
-        const p2Kids = [...(parentToChildren.get(coupleSpouseId) || [])].filter((k) => !sharedChildIds.includes(k));
-
-        const allChildIds = [...new Set([...sharedChildIds, ...p1Kids, ...p2Kids])];
-        // Sort children by birth_date (earliest first), nulls last
-        allChildIds.sort((a, b) => {
-          const pa = personMap.get(a);
-          const pb = personMap.get(b);
-          const da = pa?.birth_date ? new Date(pa.birth_date).getTime() : Infinity;
-          const db = pb?.birth_date ? new Date(pb.birth_date).getTime() : Infinity;
-          return da - db;
-        });
-        const children = allChildIds.map((cid) => buildNode(cid)).filter(Boolean) as LayoutNode[];
-
-        return {
-          type: "couple",
-          id: `${personId}_${coupleSpouseId}`,
-          persons: [person, spouse],
-          primaryIndex,
-          children,
-        };
-      } else {
-        visited.add(personId);
-        const kidIds = [...(parentToChildren.get(personId) || [])];
-        // Sort children by birth_date (earliest first), nulls last
-        kidIds.sort((a, b) => {
-          const pa = personMap.get(a);
-          const pb = personMap.get(b);
-          const da = pa?.birth_date ? new Date(pa.birth_date).getTime() : Infinity;
-          const db = pb?.birth_date ? new Date(pb.birth_date).getTime() : Infinity;
-          return da - db;
-        });
-        const children = kidIds.map((cid) => buildNode(cid)).filter(Boolean) as LayoutNode[];
-
-        return {
+        return [{
           type: "single",
           id: personId,
           person,
           children,
-        };
+        }];
       }
+
+      // Person has spouses. For each spouse, create a couple node.
+      const nodes: LayoutNode[] = [];
+
+      for (const spouseInfo of spouses) {
+        const spouse = personMap.get(spouseInfo.spouseId);
+        if (!spouse) continue;
+
+        globallyVisitedPeopleIds.add(spouseInfo.spouseId);
+
+        // Track globally visited couples to render them exactly once
+        const coupleKey = [personId, spouseInfo.spouseId].sort().join("_");
+        if (globalVisitedCouples.has(coupleKey)) continue;
+        globalVisitedCouples.add(coupleKey);
+
+        // Shared children of this couple
+        const sharedChildIds = getSharedChildren(personId, spouseInfo.spouseId);
+        const sortedChildIds = [...sharedChildIds].sort(sortByBirthDate);
+        const children = sortedChildIds.flatMap((cid) => buildSubtrees(cid, newVisited));
+
+        nodes.push({
+          type: "couple",
+          id: coupleKey,
+          persons: [person, spouse],
+          primaryIndex: 0, // personId is the blood-relative ancestor here
+          isDivorced: spouseInfo.isDivorced,
+          isWidowed: spouseInfo.isWidowed,
+          children,
+        });
+      }
+
+      // Exclusive children of this person (with an unknown spouse / not in DB)
+      const allSpouseIds = spouses.map((s) => s.spouseId);
+      const exclusiveChildIds = [...(parentToChildren.get(personId) || [])].filter((cid) => {
+        const childParents = childToParents.get(cid) || new Set();
+        return !allSpouseIds.some((sid) => childParents.has(sid));
+      });
+
+      if (exclusiveChildIds.length > 0) {
+        const sortedExclusiveIds = exclusiveChildIds.sort(sortByBirthDate);
+        const children = sortedExclusiveIds.flatMap((cid) => buildSubtrees(cid, newVisited));
+        nodes.push({
+          type: "single",
+          id: `${personId}_exclusive`,
+          person,
+          children,
+        });
+      }
+
+      return nodes;
     };
 
-    // Find roots (no parents AND not married-in — married-in folks should
-    // appear as spouses of their blood-relative partner, not as a separate tree).
+    const rootNodes: LayoutNode[] = [];
     const roots = persons.filter((p) => !childToParents.has(p.id) && !p.married_in);
     if (roots.length === 0 && persons.length > 0) roots.push(persons[0]);
 
-    const rootNodes: LayoutNode[] = [];
+    const visitedPeople = new Set<string>();
+
     for (const r of roots) {
-      const node = buildNode(r.id);
-      if (node) rootNodes.push(node);
+      const subtrees = buildSubtrees(r.id, visitedPeople);
+      rootNodes.push(...subtrees);
     }
 
-    // Orphans
+    // Orphans / Unvisited people
     persons.forEach((p) => {
-      if (!visited.has(p.id)) {
-        rootNodes.push({ type: "single", id: p.id, person: p, children: [] });
-        visited.add(p.id);
+      if (!globallyVisitedPeopleIds.has(p.id)) {
+        rootNodes.push({
+          type: "single",
+          id: p.id,
+          person: p,
+          children: []
+        });
+        globallyVisitedPeopleIds.add(p.id);
       }
     });
 
@@ -205,7 +251,12 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
     }
 
     interface PositionedCoupleLine {
-      x1: number; y1: number; x2: number; y2: number;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      isDivorced?: boolean;
+      isWidowed?: boolean;
     }
 
     const posPersons: PositionedPerson[] = [];
@@ -213,7 +264,13 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
     const posCoupleLines: PositionedCoupleLine[] = [];
 
     // Recursive layout: returns the width of the subtree
-    const layoutNode = (node: LayoutNode, x: number, y: number): { width: number; anchorX: number } => {
+    const layoutNode = (
+      node: LayoutNode,
+      x: number,
+      y: number,
+      birthOrder?: number,
+      siblingCount?: number
+    ): { width: number; anchorX: number } => {
       if (node.type === "couple") {
         const [p1, p2] = node.persons;
 
@@ -224,12 +281,19 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
 
         if (node.children.length > 0) {
           let cx = x;
-          for (const child of node.children) {
+          const childCount = node.children.length;
+          node.children.forEach((child, i) => {
             childXStarts.push(cx);
-            const cl = layoutNode(child, cx, y + V_SPACING);
+            const cl = layoutNode(
+              child,
+              cx,
+              y + V_SPACING,
+              childCount > 1 ? i + 1 : undefined,
+              childCount > 1 ? childCount : undefined
+            );
             childLayouts.push(cl);
             cx += cl.width + H_SPACING;
-          }
+          });
           childrenWidth = cx - H_SPACING - x;
         }
 
@@ -240,22 +304,33 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
         const p1x = centerX - COUPLE_GAP / 2;
         const p2x = centerX + COUPLE_GAP / 2;
 
-        posPersons.push({ x: p1x, y, person: p1, marriedIn: !!p1.married_in, deceased: !!p1.death_date });
-        posPersons.push({ x: p2x, y, person: p2, marriedIn: !!p2.married_in, deceased: !!p2.death_date });
-
-        // Tag children with birth order
-        const childCount = node.children.length;
-        node.children.forEach((_child, i) => {
-          // Find the person just pushed by this child's layout
-          const childNode = node.children[i];
-          const childPersonId = childNode.type === "couple" ? childNode.persons[childNode.primaryIndex].id : childNode.person.id;
-          const pp = posPersons.find((p) => p.person.id === childPersonId);
-          if (pp && childCount > 1) {
-            pp.birthOrder = i + 1;
-            pp.siblingCount = childCount;
-          }
+        posPersons.push({
+          x: p1x,
+          y,
+          person: p1,
+          marriedIn: !!p1.married_in,
+          deceased: !!p1.death_date,
+          birthOrder: node.primaryIndex === 0 ? birthOrder : undefined,
+          siblingCount: node.primaryIndex === 0 ? siblingCount : undefined,
         });
-        posCoupleLines.push({ x1: p1x + NODE_R, y1: y, x2: p2x - NODE_R, y2: y });
+        posPersons.push({
+          x: p2x,
+          y,
+          person: p2,
+          marriedIn: !!p2.married_in,
+          deceased: !!p2.death_date,
+          birthOrder: node.primaryIndex === 1 ? birthOrder : undefined,
+          siblingCount: node.primaryIndex === 1 ? siblingCount : undefined,
+        });
+
+        posCoupleLines.push({
+          x1: p1x + NODE_R,
+          y1: y,
+          x2: p2x - NODE_R,
+          y2: y,
+          isDivorced: node.isDivorced,
+          isWidowed: node.isWidowed,
+        });
 
         // Links from couple midpoint to children
         const midX = centerX;
@@ -282,30 +357,32 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
 
         if (node.children.length > 0) {
           let cx = x;
-          for (const child of node.children) {
+          const childCount = node.children.length;
+          node.children.forEach((child, i) => {
             childXStarts.push(cx);
-            const cl = layoutNode(child, cx, y + V_SPACING);
+            const cl = layoutNode(
+              child,
+              cx,
+              y + V_SPACING,
+              childCount > 1 ? i + 1 : undefined,
+              childCount > 1 ? childCount : undefined
+            );
             childLayouts.push(cl);
             cx += cl.width + H_SPACING;
-          }
+          });
           childrenWidth = cx - H_SPACING - x;
         }
 
         const totalWidth = Math.max(NODE_R * 2, childrenWidth);
         const centerX = x + totalWidth / 2;
 
-        posPersons.push({ x: centerX, y, person, deceased: !!person.death_date });
-
-        // Tag children with birth order
-        const childCount = node.children.length;
-        node.children.forEach((_child, i) => {
-          const childNode = node.children[i];
-          const childPersonId = childNode.type === "couple" ? childNode.persons[childNode.primaryIndex].id : childNode.person.id;
-          const pp = posPersons.find((p) => p.person.id === childPersonId);
-          if (pp && childCount > 1) {
-            pp.birthOrder = i + 1;
-            pp.siblingCount = childCount;
-          }
+        posPersons.push({
+          x: centerX,
+          y,
+          person,
+          deceased: !!person.death_date,
+          birthOrder,
+          siblingCount,
         });
 
         node.children.forEach((child, i) => {
@@ -361,13 +438,59 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
 
     // Draw couple lines
     posCoupleLines.forEach((cl) => {
+      let strokeColor = "hsl(var(--primary))";
+      let dashArray = "6,4";
+      let opacity = isFiltering ? 0.15 : 0.7;
+
+      if (cl.isDivorced) {
+        strokeColor = "hsl(var(--destructive))";
+        dashArray = "3,3";
+        opacity = isFiltering ? 0.15 : 0.6;
+      } else if (cl.isWidowed) {
+        strokeColor = "hsl(var(--muted-foreground))";
+        dashArray = "6,4";
+        opacity = isFiltering ? 0.15 : 0.6;
+      }
+
       g.append("line")
         .attr("x1", cl.x1).attr("y1", cl.y1)
         .attr("x2", cl.x2).attr("y2", cl.y2)
-        .attr("stroke", "hsl(var(--primary))")
+        .attr("stroke", strokeColor)
         .attr("stroke-width", 2)
-        .attr("stroke-dasharray", "6,4")
-        .attr("opacity", isFiltering ? 0.15 : 0.7);
+        .attr("stroke-dasharray", dashArray)
+        .attr("opacity", opacity);
+
+      // Add a small label status chip in the center of the couple line
+      if (cl.isDivorced || cl.isWidowed) {
+        const midX = (cl.x1 + cl.x2) / 2;
+        const midY = cl.y1;
+        const labelText = cl.isDivorced ? "Divorced" : "Widowed";
+
+        const textG = g.append("g")
+          .attr("opacity", opacity);
+
+        // Chip Background
+        textG.append("rect")
+          .attr("x", midX - 25)
+          .attr("y", midY - 8)
+          .attr("width", 50)
+          .attr("height", 15)
+          .attr("rx", 7.5)
+          .attr("fill", cl.isDivorced ? "hsl(var(--destructive) / 0.15)" : "hsl(var(--muted) / 0.4)")
+          .attr("stroke", strokeColor)
+          .attr("stroke-width", 1);
+
+        // Chip Text
+        textG.append("text")
+          .attr("x", midX)
+          .attr("y", midY + 3)
+          .attr("text-anchor", "middle")
+          .attr("fill", cl.isDivorced ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground))")
+          .attr("font-size", "8px")
+          .attr("font-family", "Inter, sans-serif")
+          .attr("font-weight", "bold")
+          .text(labelText);
+      }
     });
 
     // Draw links

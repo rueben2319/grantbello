@@ -63,7 +63,7 @@ describe("PhotoUpload", () => {
         onRemoved={onRemoved}
       />
     );
-    const removeBtn = screen.getByRole("button");
+    const removeBtn = screen.getByRole("button", { name: "Remove photo" });
     fireEvent.click(removeBtn);
     expect(onRemoved).toHaveBeenCalled();
   });

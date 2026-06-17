@@ -168,6 +168,7 @@ export default function FamilyTree() {
         childCount,
         primaryPersonId: primary.id,
         generation: generationMap.get(primary.id) || 1,
+        isDivorced: !!rel.is_divorced,
       });
 
       usedPersonIds.add(p1.id);

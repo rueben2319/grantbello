@@ -116,7 +116,14 @@ export function BranchList({ branches, onSelectBranch, onClose }: BranchListProp
                           {branch.persons[1] && <PersonAvatar person={branch.persons[1]} />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <BranchLabel branch={branch} />
+                          <div className="flex items-center gap-2">
+                            <BranchLabel branch={branch} />
+                            {branch.isDivorced && (
+                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-medium text-destructive">
+                                Divorced
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                             <Baby className="h-3 w-3 shrink-0" />
                             <span className="truncate">

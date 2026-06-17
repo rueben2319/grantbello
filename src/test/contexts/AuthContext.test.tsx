@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
-const mockSession = { user: { id: "u1", email: "a@b.com" } };
-const mockProfile = { display_name: "Alice", user_id: "u1" };
-
 vi.mock("@/integrations/supabase/client", () => {
+  const mockSession = { user: { id: "u1", email: "a@b.com" } };
+  const mockProfile = { display_name: "Alice", user_id: "u1" };
   const authListeners: Array<(event: string, session: unknown) => void> = [];
   return {
     supabase: {
       auth: {
         onAuthStateChange: (cb: (event: string, session: unknown) => void) => {
           authListeners.push(cb);
+          cb("SIGNED_IN", mockSession);
           return { data: { subscription: { unsubscribe: vi.fn() } } };
         },
         getSession: vi.fn().mockResolvedValue({
@@ -22,6 +22,7 @@ vi.mock("@/integrations/supabase/client", () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: mockProfile }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: mockProfile }),
       }),
     },
   };

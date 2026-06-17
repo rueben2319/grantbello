@@ -298,6 +298,7 @@ export type Database = {
           created_at: string
           family_id: string
           id: string
+          is_divorced: boolean
           person_id: string
           related_person_id: string
           relationship_type: Database["public"]["Enums"]["relationship_type"]
@@ -306,6 +307,7 @@ export type Database = {
           created_at?: string
           family_id: string
           id?: string
+          is_divorced?: boolean
           person_id: string
           related_person_id: string
           relationship_type: Database["public"]["Enums"]["relationship_type"]
@@ -314,6 +316,7 @@ export type Database = {
           created_at?: string
           family_id?: string
           id?: string
+          is_divorced?: boolean
           person_id?: string
           related_person_id?: string
           relationship_type?: Database["public"]["Enums"]["relationship_type"]

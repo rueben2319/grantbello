@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhotoUpload } from "@/components/PhotoUpload";
-import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
+import { useUpdatePerson, useCreateRelationship, useDeleteRelationship, useUpdateRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
@@ -29,6 +29,7 @@ interface EditPersonDialogProps {
 interface NewRelEntry {
   personId: string;
   type: "parent" | "child" | "spouse";
+  isDivorced?: boolean;
 }
 
 export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
@@ -47,6 +48,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const updatePerson = useUpdatePerson();
   const createRelationship = useCreateRelationship();
   const deleteRelationship = useDeleteRelationship();
+  const updateRelationship = useUpdateRelationship();
 
   useEffect(() => {
     setFirstName(person.first_name);
@@ -91,6 +93,15 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
     }
   };
 
+  const handleToggleDivorce = async (relId: string, isDivorced: boolean) => {
+    try {
+      await updateRelationship.mutateAsync({ id: relId, is_divorced: isDivorced });
+      toast.success("Relationship updated");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -130,6 +141,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
             person_id: person.id,
             related_person_id: rel.personId,
             relationship_type: "spouse",
+            is_divorced: !!rel.isDivorced,
           });
         }
       }
@@ -216,49 +228,81 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Relationships</Label>
             {existingRels.map(({ rel, label, otherPersonId }) => (
-              <div key={rel.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                <span>{label} <strong>{getPersonName(otherPersonId)}</strong></span>
-                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
-                  <X className="h-3 w-3" />
-                </Button>
+              <div key={rel.id} className="flex flex-col gap-2 rounded-md border p-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>{label} <strong>{getPersonName(otherPersonId)}</strong></span>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                {rel.relationship_type === "spouse" && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Checkbox
+                      id={`divorced-${rel.id}`}
+                      checked={rel.is_divorced || false}
+                      onCheckedChange={(checked) => handleToggleDivorce(rel.id, checked === true)}
+                    />
+                    <Label htmlFor={`divorced-${rel.id}`} className="text-xs text-muted-foreground">
+                      Divorced / Separated
+                    </Label>
+                  </div>
+                )}
               </div>
             ))}
 
             {newRels.map((rel, index) => (
-              <div key={index} className="flex items-end gap-2 rounded-md border p-3">
-                <div className="flex-1 space-y-2">
-                  <Label className="text-xs">This person is...</Label>
-                  <Select value={rel.type} onValueChange={(v) => {
-                    const updated = [...newRels];
-                    updated[index] = { ...updated[index], type: v as "parent" | "child" | "spouse" };
-                    setNewRels(updated);
-                  }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parent">Parent of</SelectItem>
-                      <SelectItem value="child">Child of</SelectItem>
-                      <SelectItem value="spouse">Spouse of</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div key={index} className="flex flex-col gap-2 rounded-md border p-3">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-xs">This person is...</Label>
+                    <Select value={rel.type} onValueChange={(v) => {
+                      const updated = [...newRels];
+                      updated[index] = { ...updated[index], type: v as "parent" | "child" | "spouse" };
+                      setNewRels(updated);
+                    }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parent">Parent of</SelectItem>
+                        <SelectItem value="child">Child of</SelectItem>
+                        <SelectItem value="spouse">Spouse of</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-xs">Person</Label>
+                    <Select value={rel.personId} onValueChange={(v) => {
+                      const updated = [...newRels];
+                      updated[index] = { ...updated[index], personId: v };
+                      setNewRels(updated);
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
+                      <SelectContent>
+                        {otherPersons.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setNewRels(newRels.filter((_, i) => i !== index))}>
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="flex-1 space-y-2">
-                  <Label className="text-xs">Person</Label>
-                  <Select value={rel.personId} onValueChange={(v) => {
-                    const updated = [...newRels];
-                    updated[index] = { ...updated[index], personId: v };
-                    setNewRels(updated);
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                    <SelectContent>
-                      {otherPersons.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => setNewRels(newRels.filter((_, i) => i !== index))}>
-                  <X className="h-4 w-4" />
-                </Button>
+                {rel.type === "spouse" && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Checkbox
+                      id={`divorced-new-${index}`}
+                      checked={rel.isDivorced || false}
+                      onCheckedChange={(checked) => {
+                        const updated = [...newRels];
+                        updated[index] = { ...updated[index], isDivorced: checked === true };
+                        setNewRels(updated);
+                      }}
+                    />
+                    <Label htmlFor={`divorced-new-${index}`} className="text-xs text-muted-foreground">
+                      Divorced / Separated
+                    </Label>
+                  </div>
+                )}
               </div>
             ))}
 
