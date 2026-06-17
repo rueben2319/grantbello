@@ -163,7 +163,7 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
 
         const hasParentLink = (parentId: string, childId: string) =>
           (existingParents ?? []).some(
-            (r) => r.person_id === parentId && r.related_person_id === childId
+            (r: { person_id: string; related_person_id: string }) => r.person_id === parentId && r.related_person_id === childId
           );
 
         for (const [childId, directParents] of parentIdsForChild.entries()) {
