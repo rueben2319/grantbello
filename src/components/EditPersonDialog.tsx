@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhotoUpload } from "@/components/PhotoUpload";
-import { useUpdatePerson, useCreateRelationship, useDeleteRelationship } from "@/hooks/useFamily";
+import { PersonCombobox } from "@/components/PersonCombobox";
+import { useUpdatePerson, useCreateRelationship, useDeleteRelationship, useUpdateRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
@@ -47,6 +48,7 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const updatePerson = useUpdatePerson();
   const createRelationship = useCreateRelationship();
   const deleteRelationship = useDeleteRelationship();
+  const updateRelationship = useUpdateRelationship();
 
   useEffect(() => {
     setFirstName(person.first_name);
@@ -216,11 +218,33 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Relationships</Label>
             {existingRels.map(({ rel, label, otherPersonId }) => (
-              <div key={rel.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                <span>{label} <strong>{getPersonName(otherPersonId)}</strong></span>
-                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
-                  <X className="h-3 w-3" />
-                </Button>
+              <div key={rel.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                <span className="min-w-0">{label} <strong>{getPersonName(otherPersonId)}</strong></span>
+                <div className="flex items-center gap-1">
+                  {rel.relationship_type === "spouse" && (
+                    <Select
+                      value={rel.status ?? "active"}
+                      onValueChange={async (v) => {
+                        try {
+                          await updateRelationship.mutateAsync({ id: rel.id, status: v as "active" | "divorced" | "widowed" });
+                          toast.success("Marriage status updated");
+                        } catch (err) {
+                          toast.error(getErrorMessage(err));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="divorced">Divorced</SelectItem>
+                        <SelectItem value="widowed">Widowed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
 
@@ -241,20 +265,17 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2 min-w-0">
                   <Label className="text-xs">Person</Label>
-                  <Select value={rel.personId} onValueChange={(v) => {
-                    const updated = [...newRels];
-                    updated[index] = { ...updated[index], personId: v };
-                    setNewRels(updated);
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
-                    <SelectContent>
-                      {otherPersons.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <PersonCombobox
+                    persons={otherPersons}
+                    value={rel.personId}
+                    onChange={(v) => {
+                      const updated = [...newRels];
+                      updated[index] = { ...updated[index], personId: v };
+                      setNewRels(updated);
+                    }}
+                  />
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => setNewRels(newRels.filter((_, i) => i !== index))}>
                   <X className="h-4 w-4" />
