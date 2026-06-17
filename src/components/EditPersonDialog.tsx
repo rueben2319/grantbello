@@ -218,11 +218,33 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Relationships</Label>
             {existingRels.map(({ rel, label, otherPersonId }) => (
-              <div key={rel.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                <span>{label} <strong>{getPersonName(otherPersonId)}</strong></span>
-                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
-                  <X className="h-3 w-3" />
-                </Button>
+              <div key={rel.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                <span className="min-w-0">{label} <strong>{getPersonName(otherPersonId)}</strong></span>
+                <div className="flex items-center gap-1">
+                  {rel.relationship_type === "spouse" && (
+                    <Select
+                      value={rel.status ?? "active"}
+                      onValueChange={async (v) => {
+                        try {
+                          await updateRelationship.mutateAsync({ id: rel.id, status: v as "active" | "divorced" | "widowed" });
+                          toast.success("Marriage status updated");
+                        } catch (err) {
+                          toast.error(getErrorMessage(err));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="divorced">Divorced</SelectItem>
+                        <SelectItem value="widowed">Widowed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRelationship(rel.id)} className="h-7 w-7">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
 
