@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
 import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
+import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
