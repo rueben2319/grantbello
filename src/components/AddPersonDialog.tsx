@@ -35,12 +35,18 @@ interface AddPersonDialogProps {
 
 export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPersonDialogProps) {
   const [open, setOpen] = useState(false);
+  const [prefix, setPrefix] = useState<string>("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [suffix, setSuffix] = useState<string>("");
   const [gender, setGender] = useState<GenderType>("other");
   const [birthDate, setBirthDate] = useState("");
   const [deathDate, setDeathDate] = useState("");
+  const [isLiving, setIsLiving] = useState(true);
+  const [birthplace, setBirthplace] = useState("");
+  const [residence, setResidence] = useState("");
+  const [twinOfId, setTwinOfId] = useState("");
   const [bio, setBio] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -49,11 +55,13 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
 
   const createPerson = useCreatePerson();
   const createRelationship = useCreateRelationship();
+  const updatePerson = useUpdatePerson();
 
   const reset = () => {
-    setFirstName(""); setMiddleName(""); setLastName(""); setGender("other");
-    setBirthDate(""); setDeathDate(""); setBio("");
-    setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
+    setPrefix(""); setFirstName(""); setMiddleName(""); setLastName(""); setSuffix("");
+    setGender("other"); setBirthDate(""); setDeathDate(""); setIsLiving(true);
+    setBirthplace(""); setResidence(""); setTwinOfId("");
+    setBio(""); setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
   };
 
   const addRelationship = () => {
