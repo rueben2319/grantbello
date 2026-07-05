@@ -75,7 +75,18 @@ export function PersonCombobox({ persons, value, onChange, placeholder = "Select
           <CommandList>
             <CommandEmpty>No matches</CommandEmpty>
             <CommandGroup>
-              {persons.map((p) => {
+              {allowClear && value && (
+                <CommandItem
+                  value="__clear__"
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                  className="text-muted-foreground text-xs"
+                >
+                  Clear selection
+                </CommandItem>
+              )}
                 const searchable = `${fullName(p)} ${p.birth_date ?? ""} ${p.death_date ?? ""}`;
                 return (
                   <CommandItem
