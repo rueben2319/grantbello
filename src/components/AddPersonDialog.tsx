@@ -237,6 +237,28 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
           <DialogTitle className="font-display">Add a Person</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Prefix</Label>
+              <Select value={prefix || "__none__"} onValueChange={(v) => setPrefix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {PREFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Suffix</Label>
+              <Select value={suffix || "__none__"} onValueChange={(v) => setSuffix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {SUFFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>First Name *</Label>
@@ -262,16 +284,42 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <Label htmlFor="isLivingAdd" className="text-sm">Is this person living?</Label>
+            <Switch id="isLivingAdd" checked={isLiving} onCheckedChange={(v) => { setIsLiving(v); if (v) setDeathDate(""); }} />
+          </div>
+          <div className={`grid gap-3 ${isLiving ? "grid-cols-1" : "grid-cols-2"}`}>
             <div className="space-y-2">
               <Label>Birth Date</Label>
               <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Death Date</Label>
-              <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
-            </div>
+            {!isLiving && (
+              <div className="space-y-2">
+                <Label>Death Date</Label>
+                <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
+              </div>
+            )}
           </div>
+          <div className="space-y-2">
+            <Label>Place of birth</Label>
+            <LocationCombobox value={birthplace} onChange={setBirthplace} placeholder="City, state, country" />
+          </div>
+          <div className="space-y-2">
+            <Label>Current residence</Label>
+            <LocationCombobox value={residence} onChange={setResidence} placeholder="City, state, country" />
+          </div>
+          {existingPersons.length > 0 && (
+            <div className="space-y-2">
+              <Label>Twin / multiple-birth of</Label>
+              <PersonCombobox
+                persons={existingPersons}
+                value={twinOfId}
+                onChange={setTwinOfId}
+                allowClear
+                placeholder="Select sibling (optional)"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short biography..." />
