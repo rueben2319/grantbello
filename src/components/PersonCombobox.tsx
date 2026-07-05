@@ -87,6 +87,7 @@ export function PersonCombobox({ persons, value, onChange, placeholder = "Select
                   Clear selection
                 </CommandItem>
               )}
+              {persons.map((p) => {
                 const searchable = `${fullName(p)} ${p.birth_date ?? ""} ${p.death_date ?? ""}`;
                 return (
                   <CommandItem
