@@ -9,10 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
+import { LocationCombobox } from "@/components/LocationCombobox";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship, useUpdateRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
+import { PREFIX_OPTIONS, SUFFIX_OPTIONS } from "@/lib/personOptions";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
