@@ -11,10 +11,13 @@ interface PersonComboboxProps {
   value: string;
   onChange: (id: string) => void;
   placeholder?: string;
+  allowClear?: boolean;
 }
 
-function fullName(p: Tables<"persons">) {
-  return [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(" ");
+export function fullName(p: Tables<"persons">) {
+  const core = [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(" ");
+  const withPrefix = p.prefix ? `${p.prefix} ${core}` : core;
+  return p.suffix ? `${withPrefix}, ${p.suffix}` : withPrefix;
 }
 
 function initials(p: Tables<"persons">) {
@@ -40,7 +43,7 @@ function PersonRow({ p }: { p: Tables<"persons"> }) {
   );
 }
 
-export function PersonCombobox({ persons, value, onChange, placeholder = "Select person" }: PersonComboboxProps) {
+export function PersonCombobox({ persons, value, onChange, placeholder = "Select person", allowClear = false }: PersonComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = useMemo(() => persons.find((p) => p.id === value), [persons, value]);
 
@@ -72,6 +75,18 @@ export function PersonCombobox({ persons, value, onChange, placeholder = "Select
           <CommandList>
             <CommandEmpty>No matches</CommandEmpty>
             <CommandGroup>
+              {allowClear && value && (
+                <CommandItem
+                  value="__clear__"
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                  className="text-muted-foreground text-xs"
+                >
+                  Clear selection
+                </CommandItem>
+              )}
               {persons.map((p) => {
                 const searchable = `${fullName(p)} ${p.birth_date ?? ""} ${p.death_date ?? ""}`;
                 return (

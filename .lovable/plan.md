@@ -1,72 +1,61 @@
-# Family Timeline Feature
 
-A new chronological timeline page showing major family events (weddings, funerals, meetings, births, graduations, reunions, other) with photos, attendees linked to the tree, date, and location.
+## Overview
+Extend the Add/Edit Person forms with four enhancements. Requires schema additions on `persons` plus UI work in `AddPersonDialog` and `EditPersonDialog`.
 
-## User-facing scope
+## 1. Schema changes (single migration)
+Add to `public.persons`:
+- `prefix text` — e.g. Mr., Mrs., Dr., Rev.
+- `suffix text` — e.g. Jr., Sr., III, PhD
+- `birthplace text`
+- `residence text`
+- `is_living boolean not null default true`
+- `twin_group_id uuid` — shared id across siblings born together; nullable
 
-- New route `/family/:familyId/timeline` with a link from the family tree page header.
-- Vertical timeline ordered by event date (newest or oldest first, toggleable).
-- Each event card shows: event type icon, title, date, location, short description, photo gallery, and attendee avatars (clickable → jump back to that person on the tree).
-- Filters at top: event type (multi-select chip filter) and year range.
-- Admins & editors see "Add event", "Edit", and "Delete" controls. Viewers and public visitors only read.
-- Hybrid privacy: public visitors see event titles, types, and the year only. Full dates, location, descriptions, photos, and attendee list require login (matches existing privacy model).
+No new tables, no policy changes (existing person policies cover new columns). Backfill: any existing row with a `death_date` gets `is_living = false`.
 
-## Data model
+## 2. Location autocomplete (free provider)
+New reusable component `src/components/LocationCombobox.tsx`:
+- Wraps `Popover` + `Command` (same pattern as `PersonCombobox`).
+- On input (debounced 300ms, min 2 chars), calls OpenStreetMap Nominatim:
+  `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=<query>`
+- Sends required `User-Agent`/`Referer`-style identification via a descriptive `Accept-Language` header; requests are client-side.
+- Normalizes each hit to `"City, State, Country"` using `address.city || town || village || municipality`, `address.state`, `address.country`. Falls back gracefully when fields are missing.
+- Stores the formatted string (plain text) on the person — no coordinates persisted.
+- Used for **Birthplace** and **Current residence** fields in both dialogs.
 
-New tables in `public`:
+Note on Nominatim: free, no API key, but has a 1 req/sec fair-use limit. Debounce + abort in-flight requests to stay well under it. If the user later wants Google Places quality, we can swap the provider without changing the field API.
 
-- `events`
-  - `family_id` (fk families, cascade)
-  - `title`
-  - `event_type` (enum: wedding, funeral, meeting, birth, graduation, reunion, other)
-  - `event_date` (date)
-  - `location` (text, optional)
-  - `description` (text, optional)
-  - `created_by` (uuid)
+## 3. Living status toggle
+- Add a `Switch` labeled "Is this person living?" (default on).
+- When ON: hide the Death Date input entirely and clear its value.
+- When OFF: reveal Death Date (optional).
+- On save: persist `is_living`; if living, force `death_date = null`.
+- Applies to both Add and Edit dialogs. In Edit, initial state derives from `is_living` (fallback: `!death_date`).
 
-- `event_attendees`
-  - `event_id` (fk events, cascade)
-  - `person_id` (fk persons, cascade)
-  - unique(event_id, person_id)
+## 4. Twin / multiple-birth linking
+- Add a "Twin / multiple-birth of…" `PersonCombobox` in both dialogs (filtered to existing family members; in Edit, excludes self).
+- On save:
+  - If a sibling is picked and that sibling already has `twin_group_id`, reuse it.
+  - Otherwise generate a new uuid, set it on both the sibling and this person.
+  - Clearing the picker in Edit sets this person's `twin_group_id` to null (does not touch others).
+- Display: on the person's card / edit dialog, show a small "Twin of X, Y" chip listing other members of the same `twin_group_id` in the family. (Full tree-visualization changes are out of scope for this plan.)
 
-- `event_photos`
-  - `event_id` (fk events, cascade)
-  - `photo_url`
-  - `caption` (optional)
-  - `sort_order` (int)
+## 5. Prefix & Suffix dropdowns
+Fixed `Select` lists in both dialogs, above/below the name row:
+- **Prefix**: —, Mr., Mrs., Ms., Miss, Dr., Rev., Fr., Hon., Prof.
+- **Suffix**: —, Jr., Sr., II, III, IV, PhD, MD, Esq.
 
-Reuse existing `photos` storage bucket under prefix `events/{family_id}/{event_id}/`.
+Update the display-name helper (`fullName`) used by `PersonCombobox` and cards to render as `Prefix First Middle Last, Suffix` when present.
 
-## Access rules (RLS)
+## Files touched
+- `supabase/migrations/<new>.sql` — schema + backfill
+- `src/components/LocationCombobox.tsx` — new
+- `src/components/AddPersonDialog.tsx` — new fields + logic
+- `src/components/EditPersonDialog.tsx` — new fields + logic
+- `src/components/PersonCombobox.tsx` — include prefix/suffix in display
+- `src/integrations/supabase/types.ts` — auto-regenerated after migration
 
-- Read events / attendees / photos: anyone (public) for families where `is_public=true`, plus family members. Sensitive fields are masked client-side based on auth state per the hybrid privacy memory.
-- Insert / update / delete events, attendees, photos: only admins & editors of that family (`is_family_editor_or_admin`).
-- Standard GRANTs: `SELECT` to `anon` and `authenticated`; full CRUD to `authenticated`; `ALL` to `service_role`.
-
-## Code structure
-
-- `src/hooks/useEvents.ts` — `useFamilyEvents`, `useEvent`, `useCreateEvent`, `useUpdateEvent`, `useDeleteEvent`, `useEventAttendees`, `useEventPhotos`, mutations for attendees/photos.
-- `src/pages/FamilyTimeline.tsx` — page shell: header, filters, timeline list, empty state, skeleton loaders.
-- `src/components/timeline/TimelineEventCard.tsx` — single event card with privacy-aware rendering.
-- `src/components/timeline/EventDialog.tsx` — create/edit dialog (zod validation: title 1–120, location ≤200, description ≤2000, date required, at least 0 attendees, type required).
-- `src/components/timeline/AttendeePicker.tsx` — multi-select from family persons with search and avatar chips.
-- `src/components/timeline/EventPhotoUploader.tsx` — reuses existing `PhotoUpload` patterns for multi-photo upload to the `photos` bucket.
-- `src/components/timeline/EventTypeBadge.tsx` — icon + color per event type using semantic tokens.
-- Add route in `src/App.tsx`; add a "Timeline" button on `FamilyTree.tsx` header.
-- Clicking an attendee navigates to `/family/:id?focus=:personId` and the tree centers on that person (extend existing focus param handling if missing).
-
-## Visual style
-
-- Vertical spine with alternating left/right cards on desktop, single column on mobile.
-- Event type colors derived from existing orange/teal palette via new semantic tokens (`--event-wedding`, `--event-funeral`, etc.) added to `index.css` and `tailwind.config.ts`.
-- Space Grotesk for event titles, Inter for body. Photo gallery uses an aspect-ratio grid with lightbox on click.
-
-## Out of scope (can follow later)
-
-- Comments / reactions on events.
-- Recurring events.
-- Calendar/month view.
-- Video attachments.
-- Notifications when a new event is added.
-
-Confirm and I'll build it.
+## Out of scope
+- Rendering twin links visually in the D3 tree (can be a follow-up).
+- Migrating the free geocoder to Google Maps (easy swap later).
+- Editing timeline event locations (this plan targets persons only; say the word to extend it to events).

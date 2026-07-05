@@ -208,49 +208,67 @@ export type Database = {
         Row: {
           bio: string | null
           birth_date: string | null
+          birthplace: string | null
           created_at: string
           death_date: string | null
           family_id: string
           first_name: string
           gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
+          is_living: boolean
           is_private: boolean
           last_name: string | null
           married_in: boolean
           middle_name: string | null
           photo_url: string | null
+          prefix: string | null
+          residence: string | null
+          suffix: string | null
+          twin_group_id: string | null
           updated_at: string
         }
         Insert: {
           bio?: string | null
           birth_date?: string | null
+          birthplace?: string | null
           created_at?: string
           death_date?: string | null
           family_id: string
           first_name: string
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
+          is_living?: boolean
           is_private?: boolean
           last_name?: string | null
           married_in?: boolean
           middle_name?: string | null
           photo_url?: string | null
+          prefix?: string | null
+          residence?: string | null
+          suffix?: string | null
+          twin_group_id?: string | null
           updated_at?: string
         }
         Update: {
           bio?: string | null
           birth_date?: string | null
+          birthplace?: string | null
           created_at?: string
           death_date?: string | null
           family_id?: string
           first_name?: string
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
+          is_living?: boolean
           is_private?: boolean
           last_name?: string | null
           married_in?: boolean
           middle_name?: string | null
           photo_url?: string | null
+          prefix?: string | null
+          residence?: string | null
+          suffix?: string | null
+          twin_group_id?: string | null
           updated_at?: string
         }
         Relationships: [

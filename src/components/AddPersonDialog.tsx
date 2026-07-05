@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
-import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
+import { LocationCombobox } from "@/components/LocationCombobox";
+import { useCreatePerson, useCreateRelationship, useUpdatePerson } from "@/hooks/useFamily";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
+import { PREFIX_OPTIONS, SUFFIX_OPTIONS } from "@/lib/personOptions";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -33,12 +35,18 @@ interface AddPersonDialogProps {
 
 export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPersonDialogProps) {
   const [open, setOpen] = useState(false);
+  const [prefix, setPrefix] = useState<string>("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [suffix, setSuffix] = useState<string>("");
   const [gender, setGender] = useState<GenderType>("other");
   const [birthDate, setBirthDate] = useState("");
   const [deathDate, setDeathDate] = useState("");
+  const [isLiving, setIsLiving] = useState(true);
+  const [birthplace, setBirthplace] = useState("");
+  const [residence, setResidence] = useState("");
+  const [twinOfId, setTwinOfId] = useState("");
   const [bio, setBio] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -47,11 +55,13 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
 
   const createPerson = useCreatePerson();
   const createRelationship = useCreateRelationship();
+  const updatePerson = useUpdatePerson();
 
   const reset = () => {
-    setFirstName(""); setMiddleName(""); setLastName(""); setGender("other");
-    setBirthDate(""); setDeathDate(""); setBio("");
-    setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
+    setPrefix(""); setFirstName(""); setMiddleName(""); setLastName(""); setSuffix("");
+    setGender("other"); setBirthDate(""); setDeathDate(""); setIsLiving(true);
+    setBirthplace(""); setResidence(""); setTwinOfId("");
+    setBio(""); setIsPrivate(false); setPhotoUrl(null); setRelationships([]); setMarriedIn(false);
   };
 
   const addRelationship = () => {
@@ -75,19 +85,40 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Resolve twin_group_id: reuse sibling's group if any, else new uuid.
+      let twinGroupId: string | null = null;
+      if (twinOfId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        twinGroupId = sibling?.twin_group_id ?? crypto.randomUUID();
+      }
+
       const person = await createPerson.mutateAsync({
         family_id: familyId,
+        prefix: prefix || null,
         first_name: firstName,
         middle_name: middleName || null,
         last_name: lastName,
+        suffix: suffix || null,
         gender,
         birth_date: birthDate || null,
-        death_date: deathDate || null,
+        death_date: isLiving ? null : (deathDate || null),
+        is_living: isLiving,
+        birthplace: birthplace || null,
+        residence: residence || null,
+        twin_group_id: twinGroupId,
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
         married_in: marriedIn,
       });
+
+      // Backfill twin group on the linked sibling if it didn't have one.
+      if (twinOfId && twinGroupId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        if (sibling && !sibling.twin_group_id) {
+          await updatePerson.mutateAsync({ id: sibling.id, twin_group_id: twinGroupId });
+        }
+      }
 
       // Track parent person IDs whose active spouses we should also link as parents.
       const parentIdsForChild = new Map<string, string[]>(); // childId -> [parentIds added directly]
@@ -206,6 +237,28 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
           <DialogTitle className="font-display">Add a Person</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Prefix</Label>
+              <Select value={prefix || "__none__"} onValueChange={(v) => setPrefix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {PREFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Suffix</Label>
+              <Select value={suffix || "__none__"} onValueChange={(v) => setSuffix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {SUFFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>First Name *</Label>
@@ -231,16 +284,42 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <Label htmlFor="isLivingAdd" className="text-sm">Is this person living?</Label>
+            <Switch id="isLivingAdd" checked={isLiving} onCheckedChange={(v) => { setIsLiving(v); if (v) setDeathDate(""); }} />
+          </div>
+          <div className={`grid gap-3 ${isLiving ? "grid-cols-1" : "grid-cols-2"}`}>
             <div className="space-y-2">
               <Label>Birth Date</Label>
               <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Death Date</Label>
-              <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
-            </div>
+            {!isLiving && (
+              <div className="space-y-2">
+                <Label>Death Date</Label>
+                <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
+              </div>
+            )}
           </div>
+          <div className="space-y-2">
+            <Label>Place of birth</Label>
+            <LocationCombobox value={birthplace} onChange={setBirthplace} placeholder="City, state, country" />
+          </div>
+          <div className="space-y-2">
+            <Label>Current residence</Label>
+            <LocationCombobox value={residence} onChange={setResidence} placeholder="City, state, country" />
+          </div>
+          {existingPersons.length > 0 && (
+            <div className="space-y-2">
+              <Label>Twin / multiple-birth of</Label>
+              <PersonCombobox
+                persons={existingPersons}
+                value={twinOfId}
+                onChange={setTwinOfId}
+                allowClear
+                placeholder="Select sibling (optional)"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short biography..." />

@@ -9,10 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
+import { LocationCombobox } from "@/components/LocationCombobox";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship, useUpdateRelationship } from "@/hooks/useFamily";
 import { Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
+import { PREFIX_OPTIONS, SUFFIX_OPTIONS } from "@/lib/personOptions";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -33,12 +35,18 @@ interface NewRelEntry {
 }
 
 export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
+  const [prefix, setPrefix] = useState(person.prefix || "");
   const [firstName, setFirstName] = useState(person.first_name);
   const [middleName, setMiddleName] = useState(person.middle_name || "");
   const [lastName, setLastName] = useState(person.last_name || "");
+  const [suffix, setSuffix] = useState(person.suffix || "");
   const [gender, setGender] = useState<GenderType>(person.gender || "other");
   const [birthDate, setBirthDate] = useState(person.birth_date || "");
   const [deathDate, setDeathDate] = useState(person.death_date || "");
+  const [isLiving, setIsLiving] = useState<boolean>(person.is_living ?? !person.death_date);
+  const [birthplace, setBirthplace] = useState(person.birthplace || "");
+  const [residence, setResidence] = useState(person.residence || "");
+  const [twinOfId, setTwinOfId] = useState("");
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
   const [photoUrl, setPhotoUrl] = useState<string | null>(person.photo_url || null);
@@ -51,12 +59,18 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const updateRelationship = useUpdateRelationship();
 
   useEffect(() => {
+    setPrefix(person.prefix || "");
     setFirstName(person.first_name);
     setMiddleName(person.middle_name || "");
     setLastName(person.last_name || "");
+    setSuffix(person.suffix || "");
     setGender(person.gender || "other");
     setBirthDate(person.birth_date || "");
     setDeathDate(person.death_date || "");
+    setIsLiving(person.is_living ?? !person.death_date);
+    setBirthplace(person.birthplace || "");
+    setResidence(person.residence || "");
+    setTwinOfId("");
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
     setPhotoUrl(person.photo_url || null);
@@ -96,14 +110,31 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Resolve twin group changes.
+      const currentGroup = person.twin_group_id ?? null;
+      let nextGroup: string | null = currentGroup;
+      if (twinOfId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        nextGroup = sibling?.twin_group_id ?? currentGroup ?? crypto.randomUUID();
+        if (sibling && !sibling.twin_group_id && nextGroup) {
+          await updatePerson.mutateAsync({ id: sibling.id, twin_group_id: nextGroup });
+        }
+      }
+
       await updatePerson.mutateAsync({
         id: person.id,
+        prefix: prefix || null,
         first_name: firstName,
         middle_name: middleName || null,
         last_name: lastName,
+        suffix: suffix || null,
         gender,
         birth_date: birthDate || null,
-        death_date: deathDate || null,
+        death_date: isLiving ? null : (deathDate || null),
+        is_living: isLiving,
+        birthplace: birthplace || null,
+        residence: residence || null,
+        twin_group_id: nextGroup,
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
@@ -152,6 +183,28 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
           <DialogTitle className="font-display">Edit Person</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Prefix</Label>
+              <Select value={prefix || "__none__"} onValueChange={(v) => setPrefix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {PREFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Suffix</Label>
+              <Select value={suffix || "__none__"} onValueChange={(v) => setSuffix(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {SUFFIX_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>First Name *</Label>
@@ -177,16 +230,49 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <Label htmlFor="isLivingEdit" className="text-sm">Is this person living?</Label>
+            <Switch id="isLivingEdit" checked={isLiving} onCheckedChange={(v) => { setIsLiving(v); if (v) setDeathDate(""); }} />
+          </div>
+          <div className={`grid gap-3 ${isLiving ? "grid-cols-1" : "grid-cols-2"}`}>
             <div className="space-y-2">
               <Label>Birth Date</Label>
               <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Death Date</Label>
-              <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
-            </div>
+            {!isLiving && (
+              <div className="space-y-2">
+                <Label>Death Date</Label>
+                <Input type="date" value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
+              </div>
+            )}
           </div>
+          <div className="space-y-2">
+            <Label>Place of birth</Label>
+            <LocationCombobox value={birthplace} onChange={setBirthplace} placeholder="City, state, country" />
+          </div>
+          <div className="space-y-2">
+            <Label>Current residence</Label>
+            <LocationCombobox value={residence} onChange={setResidence} placeholder="City, state, country" />
+          </div>
+          {otherPersons.length > 0 && (
+            <div className="space-y-2">
+              <Label>
+                Twin / multiple-birth of
+                {person.twin_group_id && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (currently in a twin group)
+                  </span>
+                )}
+              </Label>
+              <PersonCombobox
+                persons={otherPersons}
+                value={twinOfId}
+                onChange={setTwinOfId}
+                allowClear
+                placeholder="Link to sibling (optional)"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short biography..." />
