@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
-import { useCreatePerson, useCreateRelationship } from "@/hooks/useFamily";
+import { LocationCombobox } from "@/components/LocationCombobox";
+import { useCreatePerson, useCreateRelationship, useUpdatePerson } from "@/hooks/useFamily";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
+import { PREFIX_OPTIONS, SUFFIX_OPTIONS } from "@/lib/personOptions";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
 
