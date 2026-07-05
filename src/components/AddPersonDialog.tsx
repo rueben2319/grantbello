@@ -85,19 +85,40 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Resolve twin_group_id: reuse sibling's group if any, else new uuid.
+      let twinGroupId: string | null = null;
+      if (twinOfId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        twinGroupId = sibling?.twin_group_id ?? crypto.randomUUID();
+      }
+
       const person = await createPerson.mutateAsync({
         family_id: familyId,
+        prefix: prefix || null,
         first_name: firstName,
         middle_name: middleName || null,
         last_name: lastName,
+        suffix: suffix || null,
         gender,
         birth_date: birthDate || null,
-        death_date: deathDate || null,
+        death_date: isLiving ? null : (deathDate || null),
+        is_living: isLiving,
+        birthplace: birthplace || null,
+        residence: residence || null,
+        twin_group_id: twinGroupId,
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
         married_in: marriedIn,
       });
+
+      // Backfill twin group on the linked sibling if it didn't have one.
+      if (twinOfId && twinGroupId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        if (sibling && !sibling.twin_group_id) {
+          await updatePerson.mutateAsync({ id: sibling.id, twin_group_id: twinGroupId });
+        }
+      }
 
       // Track parent person IDs whose active spouses we should also link as parents.
       const parentIdsForChild = new Map<string, string[]>(); // childId -> [parentIds added directly]
