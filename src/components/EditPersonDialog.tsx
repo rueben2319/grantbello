@@ -110,14 +110,31 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Resolve twin group changes.
+      const currentGroup = person.twin_group_id ?? null;
+      let nextGroup: string | null = currentGroup;
+      if (twinOfId) {
+        const sibling = existingPersons.find((p) => p.id === twinOfId);
+        nextGroup = sibling?.twin_group_id ?? currentGroup ?? crypto.randomUUID();
+        if (sibling && !sibling.twin_group_id && nextGroup) {
+          await updatePerson.mutateAsync({ id: sibling.id, twin_group_id: nextGroup });
+        }
+      }
+
       await updatePerson.mutateAsync({
         id: person.id,
+        prefix: prefix || null,
         first_name: firstName,
         middle_name: middleName || null,
         last_name: lastName,
+        suffix: suffix || null,
         gender,
         birth_date: birthDate || null,
-        death_date: deathDate || null,
+        death_date: isLiving ? null : (deathDate || null),
+        is_living: isLiving,
+        birthplace: birthplace || null,
+        residence: residence || null,
+        twin_group_id: nextGroup,
         bio,
         is_private: isPrivate,
         photo_url: photoUrl,
