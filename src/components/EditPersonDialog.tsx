@@ -35,12 +35,18 @@ interface NewRelEntry {
 }
 
 export function EditPersonDialog({ person, open, onClose, existingPersons, relationships, familyId }: EditPersonDialogProps) {
+  const [prefix, setPrefix] = useState(person.prefix || "");
   const [firstName, setFirstName] = useState(person.first_name);
   const [middleName, setMiddleName] = useState(person.middle_name || "");
   const [lastName, setLastName] = useState(person.last_name || "");
+  const [suffix, setSuffix] = useState(person.suffix || "");
   const [gender, setGender] = useState<GenderType>(person.gender || "other");
   const [birthDate, setBirthDate] = useState(person.birth_date || "");
   const [deathDate, setDeathDate] = useState(person.death_date || "");
+  const [isLiving, setIsLiving] = useState<boolean>(person.is_living ?? !person.death_date);
+  const [birthplace, setBirthplace] = useState(person.birthplace || "");
+  const [residence, setResidence] = useState(person.residence || "");
+  const [twinOfId, setTwinOfId] = useState("");
   const [bio, setBio] = useState(person.bio || "");
   const [isPrivate, setIsPrivate] = useState(person.is_private);
   const [photoUrl, setPhotoUrl] = useState<string | null>(person.photo_url || null);
