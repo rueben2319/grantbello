@@ -43,7 +43,7 @@ function PersonRow({ p }: { p: Tables<"persons"> }) {
   );
 }
 
-export function PersonCombobox({ persons, value, onChange, placeholder = "Select person" }: PersonComboboxProps) {
+export function PersonCombobox({ persons, value, onChange, placeholder = "Select person", allowClear = false }: PersonComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = useMemo(() => persons.find((p) => p.id === value), [persons, value]);
 
