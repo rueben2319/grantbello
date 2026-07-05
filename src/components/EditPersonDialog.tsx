@@ -59,12 +59,18 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const updateRelationship = useUpdateRelationship();
 
   useEffect(() => {
+    setPrefix(person.prefix || "");
     setFirstName(person.first_name);
     setMiddleName(person.middle_name || "");
     setLastName(person.last_name || "");
+    setSuffix(person.suffix || "");
     setGender(person.gender || "other");
     setBirthDate(person.birth_date || "");
     setDeathDate(person.death_date || "");
+    setIsLiving(person.is_living ?? !person.death_date);
+    setBirthplace(person.birthplace || "");
+    setResidence(person.residence || "");
+    setTwinOfId("");
     setBio(person.bio || "");
     setIsPrivate(person.is_private);
     setPhotoUrl(person.photo_url || null);
