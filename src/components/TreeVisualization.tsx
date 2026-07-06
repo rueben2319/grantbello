@@ -491,6 +491,59 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
       }
     });
 
+    // Twin links: connect siblings sharing twin_group_id with a bracket + badge
+    const twinGroups = new Map<string, PositionedPerson[]>();
+    posPersons.forEach((pp) => {
+      const gid = (pp.person as { twin_group_id?: string | null }).twin_group_id;
+      if (!gid) return;
+      if (!twinGroups.has(gid)) twinGroups.set(gid, []);
+      twinGroups.get(gid)!.push(pp);
+    });
+
+    twinGroups.forEach((members) => {
+      if (members.length < 2) return;
+      const sorted = [...members].sort((a, b) => a.x - b.x);
+      const dim = isFiltering && !sorted.some((m) => isHighlighted(m.person.id));
+      const opacity = dim ? DIM_OPACITY : 0.85;
+      const bracketY = sorted[0].y - NODE_R - 12;
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+
+      // Bracket connecting all twins from above their nodes
+      const bracketD = `M${first.x},${first.y - NODE_R} L${first.x},${bracketY} L${last.x},${bracketY} L${last.x},${last.y - NODE_R}`;
+      g.append("path")
+        .attr("d", bracketD)
+        .attr("fill", "none")
+        .attr("stroke", "hsl(var(--primary))")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "3,3")
+        .attr("opacity", opacity);
+
+      const label = members.length === 2 ? "Twins" : members.length === 3 ? "Triplets" : `${members.length}-multiple`;
+
+      // Small "T" badge on each twin node (top-left corner)
+      sorted.forEach((m) => {
+        const badge = g.append("g")
+          .attr("transform", `translate(${m.x - NODE_R + 4},${m.y - NODE_R + 4})`)
+          .style("opacity", isHighlighted(m.person.id) ? 1 : DIM_OPACITY)
+          .style("pointer-events", "none");
+        badge.append("circle")
+          .attr("r", 8)
+          .attr("fill", "hsl(var(--primary))")
+          .attr("stroke", "hsl(var(--background))")
+          .attr("stroke-width", 1.5);
+        badge.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", "hsl(var(--primary-foreground))")
+          .attr("font-size", "10px")
+          .attr("font-weight", "bold")
+          .attr("font-family", "Space Grotesk, sans-serif")
+          .text("T");
+        badge.append("title").text(label);
+      });
+    });
+
     // Store person positions for external focus
     personPositionsRef.current = new Map(posPersons.map((pp) => [pp.person.id, { x: pp.x, y: pp.y }]));
 
@@ -585,9 +638,14 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
             <span>Deceased</span>
           </div>
           <div className="flex items-center gap-2">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">T</span>
+            <span>Twin / multiple birth</span>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-muted-foreground italic">1st born</span>
             <span>Birth order among siblings</span>
           </div>
+
         </div>
       </details>
     </div>
