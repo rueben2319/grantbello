@@ -638,9 +638,14 @@ export const TreeVisualization = forwardRef<TreeVisualizationHandle, TreeVisuali
             <span>Deceased</span>
           </div>
           <div className="flex items-center gap-2">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">T</span>
+            <span>Twin / multiple birth</span>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-muted-foreground italic">1st born</span>
             <span>Birth order among siblings</span>
           </div>
+
         </div>
       </details>
     </div>
