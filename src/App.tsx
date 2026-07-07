@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
 import FamilyTree from "./pages/FamilyTree";
 import FamilyTimeline from "./pages/FamilyTimeline";
+import Approvals from "./pages/Approvals";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/family/:familyId" element={<FamilyTree />} />
                 <Route path="/family/:familyId/timeline" element={<FamilyTimeline />} />
+                <Route path="/family/:familyId/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
