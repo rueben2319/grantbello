@@ -74,7 +74,7 @@ export function useApprovePendingChange() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, note }: { id: string; note?: string }) => {
-      const { error } = await supabase.rpc("apply_pending_change", { _id: id, _note: note ?? null });
+      const { error } = await supabase.rpc("apply_pending_change", { _id: id, _note: note });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -90,7 +90,7 @@ export function useRejectPendingChange() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, note }: { id: string; note?: string }) => {
-      const { error } = await supabase.rpc("reject_pending_change", { _id: id, _note: note ?? null });
+      const { error } = await supabase.rpc("reject_pending_change", { _id: id, _note: note });
       if (error) throw error;
     },
     onSuccess: () => {
