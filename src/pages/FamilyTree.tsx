@@ -8,16 +8,20 @@ import { AddPersonDialog } from "@/components/AddPersonDialog";
 import { FamilySettingsDialog } from "@/components/FamilySettingsDialog";
 import { MemberManagement } from "@/components/MemberManagement";
 import { BranchList } from "@/components/BranchList";
+import { SuggestedSubTrees } from "@/components/SuggestedSubTrees";
 import type { Branch } from "@/types/family";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { TreePine, Search, X, GitBranch, Calendar } from "lucide-react";
+import { TreePine, Search, X, GitBranch, Calendar, Inbox } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useEditGate } from "@/hooks/useSubTrees";
+import { usePendingCount } from "@/hooks/usePendingChanges";
 
 export default function FamilyTree() {
   const { familyId } = useParams<{ familyId: string }>();
@@ -230,8 +234,10 @@ export default function FamilyTree() {
     treeRef.current?.focusPersons(personIds);
   };
 
-  const canEdit = userRole === "admin" || userRole === "editor";
-  const isAdmin = userRole === "admin";
+  const editGate = useEditGate(familyId);
+  const canEdit = editGate.canEdit;
+  const isAdmin = editGate.isFamilyAdmin;
+  const { data: pendingCount = 0 } = usePendingCount(isAdmin ? familyId : undefined);
 
   const getParents = useCallback((personId: string) => {
     const parentIds = relationships
@@ -356,6 +362,19 @@ export default function FamilyTree() {
             <Search className="h-4 w-4" />
           </Button>
           {canEdit && <AddPersonDialog familyId={family.id} existingPersons={persons} />}
+          {isAdmin && <SuggestedSubTrees familyId={family.id} persons={persons} relationships={relationships} />}
+          {isAdmin && (
+            <Button asChild variant="ghost" size="icon" title="Approvals inbox" aria-label="Approvals inbox" className="relative">
+              <Link to={`/family/${familyId}/approvals`}>
+                <Inbox className="h-4 w-4" />
+                {pendingCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full px-1 text-[10px]" variant="destructive">
+                    {pendingCount}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+          )}
           {isAdmin && <FamilySettingsDialog family={family} />}
           {isAdmin && <MemberManagement familyId={family.id} isAdmin={isAdmin} />}
         </div>

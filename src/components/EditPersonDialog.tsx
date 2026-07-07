@@ -11,6 +11,8 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
 import { LocationCombobox } from "@/components/LocationCombobox";
 import { useUpdatePerson, useCreateRelationship, useDeleteRelationship, useUpdateRelationship } from "@/hooks/useFamily";
+import { useEditGate } from "@/hooks/useSubTrees";
+import { useSubmitPendingChange } from "@/hooks/usePendingChanges";
 import { Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/errors";
@@ -57,6 +59,9 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const createRelationship = useCreateRelationship();
   const deleteRelationship = useDeleteRelationship();
   const updateRelationship = useUpdateRelationship();
+  const editGate = useEditGate(familyId);
+  const submitPending = useSubmitPendingChange();
+
 
   useEffect(() => {
     setPrefix(person.prefix || "");
@@ -110,6 +115,24 @@ export function EditPersonDialog({ person, open, onClose, existingPersons, relat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (editGate.isSubAdminOnly) {
+        await submitPending.mutateAsync({
+          family_id: familyId,
+          sub_tree_id: editGate.subTreeId,
+          action: "update_person",
+          target_id: person.id,
+          payload: {
+            first_name: firstName, middle_name: middleName || null, last_name: lastName,
+            prefix: prefix || null, suffix: suffix || null, gender,
+            birth_date: birthDate || null, death_date: isLiving ? null : (deathDate || null),
+            is_living: isLiving, birthplace: birthplace || null, residence: residence || null,
+            bio, is_private: isPrivate, photo_url: photoUrl, married_in: marriedIn,
+          },
+        });
+        toast.success("Sent to super admin for approval");
+        onClose();
+        return;
+      }
       // Resolve twin group changes.
       const currentGroup = person.twin_group_id ?? null;
       let nextGroup: string | null = currentGroup;

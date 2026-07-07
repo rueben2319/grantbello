@@ -204,6 +204,69 @@ export type Database = {
           },
         ]
       }
+      pending_changes: {
+        Row: {
+          action: Database["public"]["Enums"]["pending_change_action"]
+          created_at: string
+          family_id: string
+          id: string
+          payload: Json
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["pending_change_status"]
+          sub_tree_id: string | null
+          submitted_by: string
+          target_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["pending_change_action"]
+          created_at?: string
+          family_id: string
+          id?: string
+          payload?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["pending_change_status"]
+          sub_tree_id?: string | null
+          submitted_by: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["pending_change_action"]
+          created_at?: string
+          family_id?: string
+          id?: string
+          payload?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["pending_change_status"]
+          sub_tree_id?: string | null
+          submitted_by?: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_changes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_changes_sub_tree_id_fkey"
+            columns: ["sub_tree_id"]
+            isOneToOne: false
+            referencedRelation: "sub_trees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       persons: {
         Row: {
           bio: string | null
@@ -363,11 +426,73 @@ export type Database = {
           },
         ]
       }
+      sub_trees: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string
+          created_by: string
+          family_id: string
+          id: string
+          label: string | null
+          root_person_a_id: string
+          root_person_b_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string
+          created_by: string
+          family_id: string
+          id?: string
+          label?: string | null
+          root_person_a_id: string
+          root_person_b_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          family_id?: string
+          id?: string
+          label?: string | null
+          root_person_a_id?: string
+          root_person_b_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_trees_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_trees_root_person_a_id_fkey"
+            columns: ["root_person_a_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_trees_root_person_b_id_fkey"
+            columns: ["root_person_b_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_pending_change: {
+        Args: { _id: string; _note?: string }
+        Returns: undefined
+      }
       find_profile_by_email: {
         Args: { _email: string; _family_id: string }
         Returns: {
@@ -392,6 +517,14 @@ export type Database = {
         Args: { _family_id: string; _user_id: string }
         Returns: boolean
       }
+      is_sub_tree_admin: {
+        Args: { _sub_tree_id: string; _user_id: string }
+        Returns: boolean
+      }
+      reject_pending_change: {
+        Args: { _id: string; _note?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       event_type:
@@ -404,6 +537,13 @@ export type Database = {
         | "other"
       family_role: "admin" | "editor" | "viewer"
       gender_type: "male" | "female" | "other"
+      pending_change_action:
+        | "add_person"
+        | "update_person"
+        | "delete_person"
+        | "add_relationship"
+        | "delete_relationship"
+      pending_change_status: "pending" | "approved" | "rejected"
       relationship_type: "parent" | "spouse"
       spouse_status: "active" | "divorced" | "widowed"
     }
@@ -544,6 +684,14 @@ export const Constants = {
       ],
       family_role: ["admin", "editor", "viewer"],
       gender_type: ["male", "female", "other"],
+      pending_change_action: [
+        "add_person",
+        "update_person",
+        "delete_person",
+        "add_relationship",
+        "delete_relationship",
+      ],
+      pending_change_status: ["pending", "approved", "rejected"],
       relationship_type: ["parent", "spouse"],
       spouse_status: ["active", "divorced", "widowed"],
     },
