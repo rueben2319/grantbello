@@ -11,6 +11,8 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { PersonCombobox } from "@/components/PersonCombobox";
 import { LocationCombobox } from "@/components/LocationCombobox";
 import { useCreatePerson, useCreateRelationship, useUpdatePerson } from "@/hooks/useFamily";
+import { useEditGate } from "@/hooks/useSubTrees";
+import { useSubmitPendingChange } from "@/hooks/usePendingChanges";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -56,6 +58,9 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const createPerson = useCreatePerson();
   const createRelationship = useCreateRelationship();
   const updatePerson = useUpdatePerson();
+  const editGate = useEditGate(familyId);
+  const submitPending = useSubmitPendingChange();
+
 
   const reset = () => {
     setPrefix(""); setFirstName(""); setMiddleName(""); setLastName(""); setSuffix("");
@@ -85,6 +90,25 @@ export function AddPersonDialog({ familyId, existingPersons, onAdded }: AddPerso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Sub-admin path: submit as pending change, skip relationship linking.
+      if (editGate.isSubAdminOnly) {
+        await submitPending.mutateAsync({
+          family_id: familyId,
+          sub_tree_id: editGate.subTreeId,
+          action: "add_person",
+          payload: {
+            first_name: firstName, middle_name: middleName || null, last_name: lastName,
+            prefix: prefix || null, suffix: suffix || null, gender,
+            birth_date: birthDate || null, death_date: isLiving ? null : (deathDate || null),
+            is_living: isLiving, birthplace: birthplace || null, residence: residence || null,
+            bio, is_private: isPrivate, photo_url: photoUrl, married_in: marriedIn,
+          },
+        });
+        toast.success("Sent to super admin for approval");
+        reset(); setOpen(false); onAdded?.();
+        return;
+      }
+
       // Resolve twin_group_id: reuse sibling's group if any, else new uuid.
       let twinGroupId: string | null = null;
       if (twinOfId) {
